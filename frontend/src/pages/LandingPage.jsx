@@ -127,7 +127,7 @@ const LandingPage = () => {
               Login to Continue
             </Link>
           </div>
-          
+
           {/* Temporary Test Button */}
           <div className="mt-8">
             <button
@@ -136,7 +136,9 @@ const LandingPage = () => {
             >
               🧪 Test Authentication (Dev)
             </button>
-            <p className="text-xs text-gray-400 mt-2">Check browser console for test results</p>
+            <p className="text-xs text-gray-400 mt-2">
+              Check browser console for test results
+            </p>
           </div>
         </div>
       </section>

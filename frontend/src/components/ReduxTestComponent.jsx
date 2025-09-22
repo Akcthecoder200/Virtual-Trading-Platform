@@ -11,20 +11,21 @@ const ReduxTestComponent = () => {
   const testReduxLogin = async () => {
     try {
       console.log("🧪 Testing Redux login action...");
-      setTestResults(prev => ({ ...prev, login: 'testing...' }));
+      setTestResults((prev) => ({ ...prev, login: "testing..." }));
 
-      const result = await dispatch(loginUser({
-        email: "admin@virtualtrading.com",
-        password: "admin123"
-      })).unwrap();
+      const result = await dispatch(
+        loginUser({
+          email: "admin@virtualtrading.com",
+          password: "admin123",
+        })
+      ).unwrap();
 
       console.log("✅ Redux login successful:", result);
-      setTestResults(prev => ({ ...prev, login: '✅ Success' }));
+      setTestResults((prev) => ({ ...prev, login: "✅ Success" }));
       toast.success("Redux login test passed!");
-      
     } catch (error) {
       console.error("❌ Redux login failed:", error);
-      setTestResults(prev => ({ ...prev, login: `❌ Failed: ${error}` }));
+      setTestResults((prev) => ({ ...prev, login: `❌ Failed: ${error}` }));
       toast.error(`Redux login test failed: ${error}`);
     }
   };
@@ -32,24 +33,23 @@ const ReduxTestComponent = () => {
   const testReduxSignup = async () => {
     try {
       console.log("🧪 Testing Redux signup action...");
-      setTestResults(prev => ({ ...prev, signup: 'testing...' }));
+      setTestResults((prev) => ({ ...prev, signup: "testing..." }));
 
       const testUser = {
         username: `reduxtest_${Date.now()}`,
         email: `reduxtest_${Date.now()}@example.com`,
         password: "Test123!",
         firstName: "Redux",
-        lastName: "Test"
+        lastName: "Test",
       };
 
       const result = await dispatch(signupUser(testUser)).unwrap();
       console.log("✅ Redux signup successful:", result);
-      setTestResults(prev => ({ ...prev, signup: '✅ Success' }));
+      setTestResults((prev) => ({ ...prev, signup: "✅ Success" }));
       toast.success("Redux signup test passed!");
-      
     } catch (error) {
       console.error("❌ Redux signup failed:", error);
-      setTestResults(prev => ({ ...prev, signup: `❌ Failed: ${error}` }));
+      setTestResults((prev) => ({ ...prev, signup: `❌ Failed: ${error}` }));
       toast.error(`Redux signup test failed: ${error}`);
     }
   };
@@ -57,16 +57,15 @@ const ReduxTestComponent = () => {
   const testReduxLogout = async () => {
     try {
       console.log("🧪 Testing Redux logout action...");
-      setTestResults(prev => ({ ...prev, logout: 'testing...' }));
+      setTestResults((prev) => ({ ...prev, logout: "testing..." }));
 
       await dispatch(logoutUser());
       console.log("✅ Redux logout successful");
-      setTestResults(prev => ({ ...prev, logout: '✅ Success' }));
+      setTestResults((prev) => ({ ...prev, logout: "✅ Success" }));
       toast.success("Redux logout test passed!");
-      
     } catch (error) {
       console.error("❌ Redux logout failed:", error);
-      setTestResults(prev => ({ ...prev, logout: `❌ Failed: ${error}` }));
+      setTestResults((prev) => ({ ...prev, logout: `❌ Failed: ${error}` }));
       toast.error(`Redux logout test failed: ${error}`);
     }
   };
@@ -77,32 +76,60 @@ const ReduxTestComponent = () => {
 
     // Test sequence: login -> logout -> signup -> logout
     await testReduxLogin();
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
+
     await testReduxLogout();
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
+
     await testReduxSignup();
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
+
     await testReduxLogout();
-    
+
     console.log("🎉 All Redux tests completed!");
   };
 
   return (
     <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 mt-8 max-w-2xl mx-auto">
-      <h3 className="text-xl font-bold text-white mb-4">🧪 Redux Integration Tests</h3>
-      
+      <h3 className="text-xl font-bold text-white mb-4">
+        🧪 Redux Integration Tests
+      </h3>
+
       {/* Current Auth State */}
       <div className="mb-6 p-4 bg-gray-700 rounded">
         <h4 className="font-semibold text-white mb-2">Current Auth State:</h4>
         <div className="text-sm text-gray-300 space-y-1">
-          <div>Authenticated: <span className={isAuthenticated ? 'text-green-400' : 'text-red-400'}>{isAuthenticated ? 'Yes' : 'No'}</span></div>
-          <div>Loading: <span className={isLoading ? 'text-yellow-400' : 'text-gray-400'}>{isLoading ? 'Yes' : 'No'}</span></div>
-          <div>User: <span className="text-blue-400">{user ? `${user.firstName} ${user.lastName} (${user.email})` : 'None'}</span></div>
-          <div>Token: <span className="text-gray-400">{token ? 'Present' : 'None'}</span></div>
-          {error && <div>Error: <span className="text-red-400">{error}</span></div>}
+          <div>
+            Authenticated:{" "}
+            <span
+              className={isAuthenticated ? "text-green-400" : "text-red-400"}
+            >
+              {isAuthenticated ? "Yes" : "No"}
+            </span>
+          </div>
+          <div>
+            Loading:{" "}
+            <span className={isLoading ? "text-yellow-400" : "text-gray-400"}>
+              {isLoading ? "Yes" : "No"}
+            </span>
+          </div>
+          <div>
+            User:{" "}
+            <span className="text-blue-400">
+              {user
+                ? `${user.firstName} ${user.lastName} (${user.email})`
+                : "None"}
+            </span>
+          </div>
+          <div>
+            Token:{" "}
+            <span className="text-gray-400">{token ? "Present" : "None"}</span>
+          </div>
+          {error && (
+            <div>
+              Error: <span className="text-red-400">{error}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -153,7 +180,8 @@ const ReduxTestComponent = () => {
       )}
 
       <p className="text-xs text-gray-400 mt-4">
-        Open DevTools Console for detailed logs. This component will be removed in production.
+        Open DevTools Console for detailed logs. This component will be removed
+        in production.
       </p>
     </div>
   );
