@@ -2,14 +2,16 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { Eye, EyeOff, TrendingUp, Mail, Lock, Loader2 } from "lucide-react";
-import { useAuthStore } from "../stores/authStore";
+import { useAuth, useAppDispatch } from "../store/hooks";
+import { loginUser } from "../store/slices/authSlice";
 import toast from "react-hot-toast";
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isLoading } = useAuthStore();
+  const { isLoading } = useAuth();
+  const dispatch = useAppDispatch();
 
   const from = location.state?.from?.pathname || "/dashboard";
 
@@ -21,7 +23,7 @@ const LoginPage = () => {
 
   const onSubmit = async (data) => {
     try {
-      await login(data.email, data.password);
+      const result = await dispatch(loginUser(data)).unwrap();
       toast.success("Welcome back!");
       navigate(from, { replace: true });
     } catch (error) {

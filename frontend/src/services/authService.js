@@ -15,8 +15,12 @@ const apiClient = axios.create({
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
-    const authStore = JSON.parse(localStorage.getItem("auth-storage") || "{}");
-    const token = authStore.state?.token;
+    const persistedState = JSON.parse(
+      localStorage.getItem("persist:auth") || "{}"
+    );
+    const token = persistedState.token
+      ? JSON.parse(persistedState.token)
+      : null;
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -41,10 +45,12 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const authStore = JSON.parse(
-          localStorage.getItem("auth-storage") || "{}"
+        const persistedState = JSON.parse(
+          localStorage.getItem("persist:auth") || "{}"
         );
-        const refreshToken = authStore.state?.refreshToken;
+        const refreshToken = persistedState.refreshToken
+          ? JSON.parse(persistedState.refreshToken)
+          : null;
 
         if (refreshToken) {
           const response = await axios.post(
@@ -57,16 +63,13 @@ apiClient.interceptors.response.use(
           const { accessToken, refreshToken: newRefreshToken } =
             response.data.tokens;
 
-          // Update stored tokens
-          const updatedStore = {
-            ...authStore,
-            state: {
-              ...authStore.state,
-              token: accessToken,
-              refreshToken: newRefreshToken,
-            },
+          // Update stored tokens in Redux persist format
+          const updatedState = {
+            ...persistedState,
+            token: JSON.stringify(accessToken),
+            refreshToken: JSON.stringify(newRefreshToken),
           };
-          localStorage.setItem("auth-storage", JSON.stringify(updatedStore));
+          localStorage.setItem("persist:auth", JSON.stringify(updatedState));
 
           // Retry original request with new token
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -74,7 +77,7 @@ apiClient.interceptors.response.use(
         }
       } catch (refreshError) {
         // Refresh failed, clear auth and redirect to login
-        localStorage.removeItem("auth-storage");
+        localStorage.removeItem("persist:auth");
         window.location.href = "/login";
       }
     }

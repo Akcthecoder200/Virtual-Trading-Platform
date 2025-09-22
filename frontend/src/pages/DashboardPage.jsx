@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { useAuthStore } from "../stores/authStore";
+import { useUser, useAppDispatch } from "../store/hooks";
+import { getProfile } from "../store/slices/authSlice";
 import {
   TrendingUp,
   DollarSign,
@@ -12,12 +13,13 @@ import {
 } from "lucide-react";
 
 const DashboardPage = () => {
-  const { user, getProfile } = useAuthStore();
+  const user = useUser();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     // Fetch user profile and wallet data when component mounts
-    getProfile();
-  }, [getProfile]);
+    dispatch(getProfile());
+  }, [dispatch]);
 
   // Mock data for demonstration
   const portfolioValue = 97534.5;

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -7,7 +7,8 @@ import {
 } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
-import { useAuthStore } from "./stores/authStore";
+import { useAuth, useAppDispatch } from "./store/hooks";
+import { getProfile, setLoading } from "./store/slices/authSlice";
 
 // Pages
 import LandingPage from "./pages/LandingPage";
@@ -23,14 +24,22 @@ import LoadingScreen from "./components/LoadingScreen";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000,
+      retry: false,
     },
   },
 });
 
 function App() {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, token } = useAuth();
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    if (token && !isAuthenticated) {
+      dispatch(setLoading(true));
+      dispatch(getProfile());
+    }
+  }, [token, isAuthenticated, dispatch]);
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -39,9 +48,19 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <div className="min-h-screen bg-white dark:bg-gray-900">
+        <div className="app">
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: "#363636",
+                color: "#fff",
+              },
+            }}
+          />
+
           <Routes>
-            {/* Public Routes */}
             <Route
               path="/"
               element={
@@ -72,8 +91,6 @@ function App() {
                 )
               }
             />
-
-            {/* Protected Routes */}
             <Route
               path="/dashboard"
               element={
@@ -82,35 +99,9 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
-            {/* Catch all route */}
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </div>
-
-        {/* Toast notifications */}
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: "#363636",
-              color: "#fff",
-            },
-            success: {
-              duration: 3000,
-              style: {
-                background: "#22c55e",
-              },
-            },
-            error: {
-              duration: 5000,
-              style: {
-                background: "#ef4444",
-              },
-            },
-          }}
-        />
       </Router>
     </QueryClientProvider>
   );

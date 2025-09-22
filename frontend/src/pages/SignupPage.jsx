@@ -11,14 +11,16 @@ import {
   Loader2,
   CheckCircle,
 } from "lucide-react";
-import { useAuthStore } from "../stores/authStore";
+import { useAuth, useAppDispatch } from "../store/hooks";
+import { signupUser } from "../store/slices/authSlice";
 import toast from "react-hot-toast";
 
 const SignupPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
-  const { signup, isLoading } = useAuthStore();
+  const { isLoading } = useAuth();
+  const dispatch = useAppDispatch();
 
   const {
     register,
@@ -44,13 +46,15 @@ const SignupPage = () => {
 
   const onSubmit = async (data) => {
     try {
-      await signup({
-        username: data.username,
-        email: data.email,
-        password: data.password,
-        firstName: data.firstName,
-        lastName: data.lastName,
-      });
+      const result = await dispatch(
+        signupUser({
+          username: data.username,
+          email: data.email,
+          password: data.password,
+          firstName: data.firstName,
+          lastName: data.lastName,
+        })
+      ).unwrap();
       toast.success("Account created successfully! Welcome to VirtualTrade!");
       navigate("/dashboard");
     } catch (error) {
