@@ -15,6 +15,7 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import DashboardPage from "./pages/DashboardPage";
+import Trading from "./pages/Trading";
 import NotFoundPage from "./pages/NotFoundPage";
 
 // Components
@@ -96,6 +97,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/trading"
+              element={
+                <ProtectedRoute>
+                  <Trading />
                 </ProtectedRoute>
               }
             />

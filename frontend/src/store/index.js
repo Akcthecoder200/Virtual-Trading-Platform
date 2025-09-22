@@ -4,6 +4,8 @@ import storage from "redux-persist/lib/storage";
 import { combineReducers } from "@reduxjs/toolkit";
 
 import authReducer from "./slices/authSlice";
+import walletReducer from "./slices/walletSlice";
+import tradingReducer from "./slices/tradingSlice";
 
 // Persist configuration for auth
 const authPersistConfig = {
@@ -15,6 +17,8 @@ const authPersistConfig = {
 // Root reducer
 const rootReducer = combineReducers({
   auth: persistReducer(authPersistConfig, authReducer),
+  wallet: walletReducer,
+  trading: tradingReducer,
   // Add more slices here as needed
 });
 

@@ -24,3 +24,49 @@ export const useAuthLoading = () => {
 export const useAuthError = () => {
   return useAppSelector((state) => state.auth.error);
 };
+
+// Wallet-specific hooks
+export const useWallet = () => {
+  return useAppSelector((state) => state.wallet);
+};
+
+export const useWalletBalance = () => {
+  return useAppSelector((state) => state.wallet.balance);
+};
+
+export const useWalletTransactions = () => {
+  return useAppSelector((state) => state.wallet.transactions);
+};
+
+export const useWalletLoading = () => {
+  return useAppSelector((state) => state.wallet.isLoading);
+};
+
+export const useWalletError = () => {
+  return useAppSelector((state) => state.wallet.error);
+};
+
+// Trading-specific hooks
+export const useTrading = () => {
+  return useAppSelector((state) => state.trading);
+};
+
+export const useStocks = () => {
+  return useAppSelector((state) => state.trading.stocks);
+};
+
+export const useTrades = () => {
+  return useAppSelector((state) => state.trading.trades);
+};
+
+export const useWatchlist = () => {
+  return useAppSelector((state) => state.trading.watchlist);
+};
+
+export const useTradingLoading = () => {
+  return useAppSelector((state) => state.trading.isLoading);
+};
+
+export const useTradingError = () => {
+  return useAppSelector((state) => state.trading.error);
+};
