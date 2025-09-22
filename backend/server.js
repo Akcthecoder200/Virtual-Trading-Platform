@@ -10,6 +10,7 @@ dotenv.config();
 
 // Import routes
 import authRoutes from "./routes/auth.js";
+import testAuthRoutes from "./routes/test-auth.js";
 import userRoutes from "./routes/users.js";
 import walletRoutes from "./routes/wallet.js";
 import tradeRoutes from "./routes/trades.js";
@@ -88,6 +89,7 @@ app.get("/api/health", async (req, res) => {
 
 // API Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/test-auth", testAuthRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/wallet", walletRoutes);
 app.use("/api/trades", tradeRoutes);
