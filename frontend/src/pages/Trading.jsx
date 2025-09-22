@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { getMarketData } from '../store/slices/tradingSlice';
-import DashboardHeader from '../components/DashboardHeader';
-import StockList from '../components/trading/StockList';
-import TradingForm from '../components/trading/TradingForm';
-import TradeHistory from '../components/trading/TradeHistory';
-import MarketWatch from '../components/trading/MarketWatch';
-import { useTradingLoading, useTradingError } from '../store/hooks';
-import toast from 'react-hot-toast';
+import React, { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
+import { getMarketData } from "../store/slices/tradingSlice";
+import DashboardHeader from "../components/DashboardHeader";
+import StockList from "../components/trading/StockList";
+import TradingForm from "../components/trading/TradingForm";
+import TradeHistory from "../components/trading/TradeHistory";
+import MarketWatch from "../components/trading/MarketWatch";
+import { useTradingLoading, useTradingError } from "../store/hooks";
+import toast from "react-hot-toast";
 
 const Trading = () => {
   const dispatch = useDispatch();
@@ -44,7 +44,7 @@ const Trading = () => {
   return (
     <div className="min-h-screen bg-gray-900">
       <DashboardHeader />
-      
+
       <main className="p-6">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Market Watch */}
@@ -64,8 +64,8 @@ const Trading = () => {
             {/* Trading Form */}
             <div className="lg:col-span-1">
               <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <TradingForm 
-                  selectedStock={selectedStock} 
+                <TradingForm
+                  selectedStock={selectedStock}
                   onTradeComplete={handleTradeComplete}
                 />
               </div>

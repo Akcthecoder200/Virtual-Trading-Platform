@@ -1,13 +1,9 @@
-import React, { useEffect } from 'react';
-import {
-  X,
-  TrendingUp,
-  TrendingDown
-} from 'lucide-react';
-import { useDispatch } from 'react-redux';
-import { useTrades, useTradingLoading } from '../../store/hooks';
-import { getTrades, closeTrade } from '../../store/slices/tradingSlice';
-import toast from 'react-hot-toast';
+import React, { useEffect } from "react";
+import { X, TrendingUp, TrendingDown } from "lucide-react";
+import { useDispatch } from "react-redux";
+import { useTrades, useTradingLoading } from "../../store/hooks";
+import { getTrades, closeTrade } from "../../store/slices/tradingSlice";
+import toast from "react-hot-toast";
 
 const TradeHistory = () => {
   const dispatch = useDispatch();
@@ -21,9 +17,9 @@ const TradeHistory = () => {
   const handleCloseTrade = async (tradeId) => {
     try {
       await dispatch(closeTrade(tradeId)).unwrap();
-      toast.success('Trade closed successfully!');
+      toast.success("Trade closed successfully!");
     } catch (error) {
-      toast.error(error.message || 'Failed to close trade');
+      toast.error(error.message || "Failed to close trade");
     }
   };
 
@@ -35,30 +31,34 @@ const TradeHistory = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'open': return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
-      case 'closed': return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
-      case 'pending': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
-      default: return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+      case "open":
+        return "bg-blue-500/20 text-blue-300 border-blue-500/30";
+      case "closed":
+        return "bg-gray-500/20 text-gray-300 border-gray-500/30";
+      case "pending":
+        return "bg-yellow-500/20 text-yellow-300 border-yellow-500/30";
+      default:
+        return "bg-gray-500/20 text-gray-300 border-gray-500/30";
     }
   };
 
   const getActionColor = (action) => {
-    return action === 'buy' 
-      ? 'bg-green-500/20 text-green-300 border-green-500/30' 
-      : 'bg-red-500/20 text-red-300 border-red-500/30';
+    return action === "buy"
+      ? "bg-green-500/20 text-green-300 border-green-500/30"
+      : "bg-red-500/20 text-red-300 border-red-500/30";
   };
 
   const calculatePnL = (trade) => {
-    if (trade.status !== 'closed' || !trade.closePrice) return null;
-    
-    const buyPrice = trade.action === 'buy' ? trade.price : trade.closePrice;
-    const sellPrice = trade.action === 'buy' ? trade.closePrice : trade.price;
+    if (trade.status !== "closed" || !trade.closePrice) return null;
+
+    const buyPrice = trade.action === "buy" ? trade.price : trade.closePrice;
+    const sellPrice = trade.action === "buy" ? trade.closePrice : trade.price;
     const pnl = (sellPrice - buyPrice) * trade.quantity;
-    
+
     return {
       value: pnl,
-      formatted: `${pnl >= 0 ? '+' : ''}${formatPrice(pnl)}`,
-      isPositive: pnl >= 0
+      formatted: `${pnl >= 0 ? "+" : ""}${formatPrice(pnl)}`,
+      isPositive: pnl >= 0,
     };
   };
 
@@ -71,14 +71,28 @@ const TradeHistory = () => {
           <thead>
             <tr className="border-b border-gray-700">
               <th className="text-left pb-3 text-gray-400 font-medium">Date</th>
-              <th className="text-left pb-3 text-gray-400 font-medium">Symbol</th>
-              <th className="text-left pb-3 text-gray-400 font-medium">Action</th>
-              <th className="text-right pb-3 text-gray-400 font-medium">Quantity</th>
-              <th className="text-right pb-3 text-gray-400 font-medium">Price</th>
-              <th className="text-right pb-3 text-gray-400 font-medium">Total Value</th>
-              <th className="text-center pb-3 text-gray-400 font-medium">Status</th>
+              <th className="text-left pb-3 text-gray-400 font-medium">
+                Symbol
+              </th>
+              <th className="text-left pb-3 text-gray-400 font-medium">
+                Action
+              </th>
+              <th className="text-right pb-3 text-gray-400 font-medium">
+                Quantity
+              </th>
+              <th className="text-right pb-3 text-gray-400 font-medium">
+                Price
+              </th>
+              <th className="text-right pb-3 text-gray-400 font-medium">
+                Total Value
+              </th>
+              <th className="text-center pb-3 text-gray-400 font-medium">
+                Status
+              </th>
               <th className="text-right pb-3 text-gray-400 font-medium">P&L</th>
-              <th className="text-center pb-3 text-gray-400 font-medium">Actions</th>
+              <th className="text-center pb-3 text-gray-400 font-medium">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -94,7 +108,10 @@ const TradeHistory = () => {
                 const totalValue = trade.price * trade.quantity;
 
                 return (
-                  <tr key={trade._id} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
+                  <tr
+                    key={trade._id}
+                    className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors"
+                  >
                     <td className="py-4">
                       <span className="text-gray-300 text-sm">
                         {formatDateTime(trade.createdAt)}
@@ -108,15 +125,17 @@ const TradeHistory = () => {
                     </td>
 
                     <td className="py-4">
-                      <span className={`inline-flex px-2 py-1 rounded-lg text-sm border ${getActionColor(trade.action)}`}>
+                      <span
+                        className={`inline-flex px-2 py-1 rounded-lg text-sm border ${getActionColor(
+                          trade.action
+                        )}`}
+                      >
                         {trade.action.toUpperCase()}
                       </span>
                     </td>
 
                     <td className="py-4 text-right">
-                      <span className="text-gray-300">
-                        {trade.quantity}
-                      </span>
+                      <span className="text-gray-300">{trade.quantity}</span>
                     </td>
 
                     <td className="py-4 text-right">
@@ -132,15 +151,24 @@ const TradeHistory = () => {
                     </td>
 
                     <td className="py-4 text-center">
-                      <span className={`inline-flex px-2 py-1 rounded-lg text-sm border ${getStatusColor(trade.status)}`}>
-                        {trade.status.charAt(0).toUpperCase() + trade.status.slice(1)}
+                      <span
+                        className={`inline-flex px-2 py-1 rounded-lg text-sm border ${getStatusColor(
+                          trade.status
+                        )}`}
+                      >
+                        {trade.status.charAt(0).toUpperCase() +
+                          trade.status.slice(1)}
                       </span>
                     </td>
 
                     <td className="py-4 text-right">
                       {pnl ? (
                         <div className="flex items-center justify-end gap-1">
-                          <span className={`font-semibold ${pnl.isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                          <span
+                            className={`font-semibold ${
+                              pnl.isPositive ? "text-green-400" : "text-red-400"
+                            }`}
+                          >
                             {pnl.formatted}
                           </span>
                           {pnl.isPositive ? (
@@ -155,7 +183,7 @@ const TradeHistory = () => {
                     </td>
 
                     <td className="py-4 text-center">
-                      {trade.status === 'open' && (
+                      {trade.status === "open" && (
                         <button
                           onClick={() => handleCloseTrade(trade._id)}
                           disabled={isLoading}

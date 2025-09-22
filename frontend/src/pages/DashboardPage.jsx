@@ -49,8 +49,8 @@ const DashboardPage = () => {
               Quick Actions
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <button 
-                onClick={() => navigate('/trading')}
+              <button
+                onClick={() => navigate("/trading")}
                 className="flex flex-col items-center p-4 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
               >
                 <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mb-2">
@@ -61,8 +61,8 @@ const DashboardPage = () => {
                 </span>
               </button>
 
-              <button 
-                onClick={() => navigate('/trading')}
+              <button
+                onClick={() => navigate("/trading")}
                 className="flex flex-col items-center p-4 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
               >
                 <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center mb-2">
@@ -73,8 +73,8 @@ const DashboardPage = () => {
                 </span>
               </button>
 
-              <button 
-                onClick={() => navigate('/trading')}
+              <button
+                onClick={() => navigate("/trading")}
                 className="flex flex-col items-center p-4 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
               >
                 <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mb-2">

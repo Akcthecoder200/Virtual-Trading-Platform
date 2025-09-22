@@ -1,5 +1,14 @@
 import React from "react";
-import { User, Settings, LogOut, Bell, TrendingUp, Menu, BarChart3, Home } from "lucide-react";
+import {
+  User,
+  Settings,
+  LogOut,
+  Bell,
+  TrendingUp,
+  Menu,
+  BarChart3,
+  Home,
+} from "lucide-react";
 import { useUser, useAppDispatch } from "../store/hooks";
 import { logoutUser } from "../store/slices/authSlice";
 import { clearWallet } from "../store/slices/walletSlice";
@@ -58,22 +67,22 @@ const DashboardHeader = () => {
           {/* Navigation Links */}
           <nav className="hidden md:flex items-center space-x-4">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate("/dashboard")}
               className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                location.pathname === '/dashboard'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                location.pathname === "/dashboard"
+                  ? "bg-blue-600 text-white"
+                  : "text-gray-400 hover:text-white hover:bg-gray-700"
               }`}
             >
               <Home className="w-4 h-4" />
               <span>Dashboard</span>
             </button>
             <button
-              onClick={() => navigate('/trading')}
+              onClick={() => navigate("/trading")}
               className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                location.pathname === '/trading'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                location.pathname === "/trading"
+                  ? "bg-blue-600 text-white"
+                  : "text-gray-400 hover:text-white hover:bg-gray-700"
               }`}
             >
               <BarChart3 className="w-4 h-4" />
