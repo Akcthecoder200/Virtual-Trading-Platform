@@ -27,37 +27,100 @@ const handleValidationErrors = (req, res, next) => {
  * User registration validation rules
  */
 const validateRegistration = [
-  body("username")
-    .isLength({ min: 3, max: 30 })
-    .withMessage("Username must be between 3 and 30 characters")
-    .matches(/^[a-zA-Z0-9_]+$/)
-    .withMessage("Username can only contain letters, numbers, and underscores"),
+  body("firstName")
+    .isLength({ min: 2, max: 30 })
+    .withMessage("First name must be between 2 and 30 characters")
+    .isAlpha("en-US", { ignore: " -'" })
+    .withMessage(
+      "First name can only contain letters, spaces, hyphens, and apostrophes"
+    )
+    .trim(),
+
+  body("lastName")
+    .isLength({ min: 2, max: 30 })
+    .withMessage("Last name must be between 2 and 30 characters")
+    .isAlpha("en-US", { ignore: " -'" })
+    .withMessage(
+      "Last name can only contain letters, spaces, hyphens, and apostrophes"
+    )
+    .trim(),
 
   body("email")
     .isEmail()
     .withMessage("Please provide a valid email address")
-    .normalizeEmail(),
+    .normalizeEmail()
+    .isLength({ max: 255 })
+    .withMessage("Email address is too long"),
 
   body("password")
-    .isLength({ min: 6 })
-    .withMessage("Password must be at least 6 characters long")
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .isLength({ min: 8, max: 128 })
+    .withMessage("Password must be between 8 and 128 characters")
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
     .withMessage(
-      "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+      "Password must contain at least one lowercase letter, one uppercase letter, one number, and one special character"
     ),
 
-  body("firstName")
-    .optional()
-    .isLength({ min: 1, max: 50 })
-    .withMessage("First name must be between 1 and 50 characters"),
+  body("confirmPassword").custom((value, { req }) => {
+    if (value !== req.body.password) {
+      throw new Error("Password confirmation does not match password");
+    }
+    return true;
+  }),
 
-  body("lastName")
+  body("dateOfBirth")
+    .isISO8601()
+    .withMessage("Date of birth must be a valid date")
+    .custom((value) => {
+      const today = new Date();
+      const birthDate = new Date(value);
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < birthDate.getDate())
+      ) {
+        age--;
+      }
+
+      if (age < 18) {
+        throw new Error("You must be at least 18 years old to register");
+      }
+
+      if (age > 120) {
+        throw new Error("Please provide a valid date of birth");
+      }
+
+      return true;
+    }),
+
+  body("phone")
     .optional()
-    .isLength({ min: 1, max: 50 })
-    .withMessage("Last name must be between 1 and 50 characters"),
+    .isMobilePhone()
+    .withMessage("Please provide a valid phone number"),
+
+  body("country")
+    .isLength({ min: 2, max: 2 })
+    .withMessage("Country code must be a valid 2-letter ISO country code")
+    .isAlpha()
+    .withMessage("Country code must contain only letters")
+    .toUpperCase(),
+
+  body("agreeToTerms")
+    .isBoolean()
+    .withMessage("Agreement to terms must be a boolean value")
+    .custom((value) => {
+      if (value !== true) {
+        throw new Error("You must agree to the terms and conditions");
+      }
+      return true;
+    }),
 
   handleValidationErrors,
 ];
+
+// Alias for backward compatibility
+const validateSignup = validateRegistration;
 
 /**
  * User login validation rules
@@ -68,7 +131,56 @@ const validateLogin = [
     .withMessage("Please provide a valid email address")
     .normalizeEmail(),
 
-  body("password").notEmpty().withMessage("Password is required"),
+  body("password")
+    .notEmpty()
+    .withMessage("Password is required")
+    .isLength({ min: 1 })
+    .withMessage("Password cannot be empty"),
+
+  body("rememberMe")
+    .optional()
+    .isBoolean()
+    .withMessage("Remember me must be a boolean value"),
+
+  handleValidationErrors,
+];
+
+/**
+ * Password reset request validation rules
+ */
+const validatePasswordResetRequest = [
+  body("email")
+    .isEmail()
+    .withMessage("Please provide a valid email address")
+    .normalizeEmail(),
+
+  handleValidationErrors,
+];
+
+/**
+ * Password reset validation rules
+ */
+const validatePasswordReset = [
+  body("token")
+    .notEmpty()
+    .withMessage("Reset token is required")
+    .isLength({ min: 1 })
+    .withMessage("Reset token cannot be empty"),
+
+  body("password")
+    .isLength({ min: 8, max: 128 })
+    .withMessage("Password must be between 8 and 128 characters")
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+    .withMessage(
+      "Password must contain at least one lowercase letter, one uppercase letter, one number, and one special character"
+    ),
+
+  body("confirmPassword").custom((value, { req }) => {
+    if (value !== req.body.password) {
+      throw new Error("Password confirmation does not match password");
+    }
+    return true;
+  }),
 
   handleValidationErrors,
 ];
@@ -117,32 +229,67 @@ const validateTrade = [
  * Profile update validation rules
  */
 const validateProfileUpdate = [
-  body("username")
-    .optional()
-    .isLength({ min: 3, max: 30 })
-    .withMessage("Username must be between 3 and 30 characters")
-    .matches(/^[a-zA-Z0-9_]+$/)
-    .withMessage("Username can only contain letters, numbers, and underscores"),
-
   body("firstName")
     .optional()
-    .isLength({ min: 1, max: 50 })
-    .withMessage("First name must be between 1 and 50 characters"),
+    .isLength({ min: 2, max: 30 })
+    .withMessage("First name must be between 2 and 30 characters")
+    .isAlpha("en-US", { ignore: " -'" })
+    .withMessage(
+      "First name can only contain letters, spaces, hyphens, and apostrophes"
+    )
+    .trim(),
 
   body("lastName")
     .optional()
-    .isLength({ min: 1, max: 50 })
-    .withMessage("Last name must be between 1 and 50 characters"),
+    .isLength({ min: 2, max: 30 })
+    .withMessage("Last name must be between 2 and 30 characters")
+    .isAlpha("en-US", { ignore: " -'" })
+    .withMessage(
+      "Last name can only contain letters, spaces, hyphens, and apostrophes"
+    )
+    .trim(),
 
   body("phone")
     .optional()
     .isMobilePhone()
     .withMessage("Please provide a valid phone number"),
 
+  body("dateOfBirth")
+    .optional()
+    .isISO8601()
+    .withMessage("Date of birth must be a valid date")
+    .custom((value) => {
+      if (value) {
+        const today = new Date();
+        const birthDate = new Date(value);
+        const age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+
+        if (
+          monthDiff < 0 ||
+          (monthDiff === 0 && today.getDate() < birthDate.getDate())
+        ) {
+          age--;
+        }
+
+        if (age < 18) {
+          throw new Error("You must be at least 18 years old");
+        }
+
+        if (age > 120) {
+          throw new Error("Please provide a valid date of birth");
+        }
+      }
+      return true;
+    }),
+
   body("country")
     .optional()
-    .isLength({ min: 2, max: 50 })
-    .withMessage("Country must be between 2 and 50 characters"),
+    .isLength({ min: 2, max: 2 })
+    .withMessage("Country code must be a valid 2-letter ISO country code")
+    .isAlpha()
+    .withMessage("Country code must contain only letters")
+    .toUpperCase(),
 
   handleValidationErrors,
 ];
@@ -156,14 +303,14 @@ const validatePasswordChange = [
     .withMessage("Current password is required"),
 
   body("newPassword")
-    .isLength({ min: 6 })
-    .withMessage("New password must be at least 6 characters long")
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .isLength({ min: 8, max: 128 })
+    .withMessage("New password must be between 8 and 128 characters")
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
     .withMessage(
-      "New password must contain at least one uppercase letter, one lowercase letter, and one number"
+      "New password must contain at least one lowercase letter, one uppercase letter, one number, and one special character"
     ),
 
-  body("confirmPassword").custom((value, { req }) => {
+  body("confirmNewPassword").custom((value, { req }) => {
     if (value !== req.body.newPassword) {
       throw new Error("Password confirmation does not match new password");
     }
@@ -173,11 +320,33 @@ const validatePasswordChange = [
   handleValidationErrors,
 ];
 
+/**
+ * Email change validation rules
+ */
+const validateEmailChange = [
+  body("newEmail")
+    .isEmail()
+    .withMessage("Please provide a valid email address")
+    .normalizeEmail()
+    .isLength({ max: 255 })
+    .withMessage("Email address is too long"),
+
+  body("password")
+    .notEmpty()
+    .withMessage("Password is required to change email"),
+
+  handleValidationErrors,
+];
+
 export {
   validateRegistration,
+  validateSignup,
   validateLogin,
+  validatePasswordResetRequest,
+  validatePasswordReset,
   validateTrade,
   validateProfileUpdate,
   validatePasswordChange,
+  validateEmailChange,
   handleValidationErrors,
 };
