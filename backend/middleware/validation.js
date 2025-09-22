@@ -330,11 +330,52 @@ const validateEmailChange = [
     .normalizeEmail()
     .isLength({ max: 255 })
     .withMessage("Email address is too long"),
-
+    
   body("password")
     .notEmpty()
     .withMessage("Password is required to change email"),
+    
+  handleValidationErrors,
+];
 
+/**
+ * Wallet funds operation validation rules
+ */
+const validateWalletFunds = [
+  body("amount")
+    .isFloat({ min: 0.01 })
+    .withMessage("Amount must be a positive number greater than 0.01")
+    .custom((value) => {
+      if (value > 1000000) {
+        throw new Error("Amount cannot exceed $1,000,000");
+      }
+      return true;
+    }),
+    
+  body("description")
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage("Description cannot exceed 200 characters")
+    .trim(),
+    
+  handleValidationErrors,
+];
+
+/**
+ * Admin wallet reset validation rules
+ */
+const validateAdminWalletReset = [
+  body("amount")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("Amount must be a positive number"),
+    
+  body("reason")
+    .optional()
+    .isLength({ max: 500 })
+    .withMessage("Reason cannot exceed 500 characters")
+    .trim(),
+    
   handleValidationErrors,
 ];
 
@@ -348,5 +389,7 @@ export {
   validateProfileUpdate,
   validatePasswordChange,
   validateEmailChange,
+  validateWalletFunds,
+  validateAdminWalletReset,
   handleValidationErrors,
 };
