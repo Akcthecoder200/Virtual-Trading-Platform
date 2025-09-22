@@ -7,6 +7,8 @@ import {
   Users,
   Star,
 } from "lucide-react";
+import { runAuthTests } from "../utils/authTest";
+import ReduxTestComponent from "../components/ReduxTestComponent";
 
 const LandingPage = () => {
   const features = [
@@ -125,6 +127,17 @@ const LandingPage = () => {
               Login to Continue
             </Link>
           </div>
+          
+          {/* Temporary Test Button */}
+          <div className="mt-8">
+            <button
+              onClick={runAuthTests}
+              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors"
+            >
+              🧪 Test Authentication (Dev)
+            </button>
+            <p className="text-xs text-gray-400 mt-2">Check browser console for test results</p>
+          </div>
         </div>
       </section>
 
@@ -228,6 +241,13 @@ const LandingPage = () => {
             Get Started Now - It's Free
             <TrendingUp className="ml-2 w-5 h-5" />
           </Link>
+        </div>
+      </section>
+
+      {/* Temporary Redux Test Component */}
+      <section className="py-12 px-4 bg-gray-900">
+        <div className="max-w-7xl mx-auto">
+          <ReduxTestComponent />
         </div>
       </section>
 

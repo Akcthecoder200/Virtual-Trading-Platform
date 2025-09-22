@@ -7,9 +7,11 @@ export const loginUser = createAsyncThunk(
   "auth/login",
   async (credentials, { rejectWithValue }) => {
     try {
+      console.log("🔄 Redux loginUser: Starting login request", { email: credentials.email });
       const response = await authService.login(credentials);
       const { user, tokens } = response.data;
 
+      console.log("✅ Redux loginUser: Login successful", { user: user.email, hasTokens: !!tokens });
       toast.success(`Welcome back, ${user.firstName}!`);
 
       return {
@@ -19,6 +21,7 @@ export const loginUser = createAsyncThunk(
       };
     } catch (error) {
       const message = error.response?.data?.error?.message || "Login failed";
+      console.error("❌ Redux loginUser: Login failed", { error: message, fullError: error });
       toast.error(message);
       return rejectWithValue(message);
     }
@@ -29,9 +32,11 @@ export const signupUser = createAsyncThunk(
   "auth/signup",
   async (userData, { rejectWithValue }) => {
     try {
+      console.log("🔄 Redux signupUser: Starting signup request", { email: userData.email, username: userData.username });
       const response = await authService.signup(userData);
       const { user, tokens } = response.data;
 
+      console.log("✅ Redux signupUser: Signup successful", { user: user.email, hasTokens: !!tokens });
       toast.success(
         `Welcome, ${user.firstName}! Account created successfully.`
       );
@@ -43,6 +48,7 @@ export const signupUser = createAsyncThunk(
       };
     } catch (error) {
       const message = error.response?.data?.error?.message || "Signup failed";
+      console.error("❌ Redux signupUser: Signup failed", { error: message, fullError: error });
       toast.error(message);
       return rejectWithValue(message);
     }
