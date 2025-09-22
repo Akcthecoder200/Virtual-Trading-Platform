@@ -330,11 +330,11 @@ const validateEmailChange = [
     .normalizeEmail()
     .isLength({ max: 255 })
     .withMessage("Email address is too long"),
-    
+
   body("password")
     .notEmpty()
     .withMessage("Password is required to change email"),
-    
+
   handleValidationErrors,
 ];
 
@@ -351,13 +351,13 @@ const validateWalletFunds = [
       }
       return true;
     }),
-    
+
   body("description")
     .optional()
     .isLength({ max: 200 })
     .withMessage("Description cannot exceed 200 characters")
     .trim(),
-    
+
   handleValidationErrors,
 ];
 
@@ -369,13 +369,13 @@ const validateAdminWalletReset = [
     .optional()
     .isFloat({ min: 0 })
     .withMessage("Amount must be a positive number"),
-    
+
   body("reason")
     .optional()
     .isLength({ max: 500 })
     .withMessage("Reason cannot exceed 500 characters")
     .trim(),
-    
+
   handleValidationErrors,
 ];
 

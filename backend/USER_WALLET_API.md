@@ -1,15 +1,19 @@
 # User & Wallet Routes API Documentation
 
 ## Overview
+
 This document provides comprehensive documentation for the User & Wallet management API endpoints implemented in Step 5 of the Virtual Trading Platform.
 
 ## Base URL
+
 ```
 http://localhost:5000/api
 ```
 
 ## Authentication
+
 Most endpoints require JWT authentication. Include the token in the Authorization header:
+
 ```
 Authorization: Bearer <your_jwt_token>
 ```
@@ -19,12 +23,14 @@ Authorization: Bearer <your_jwt_token>
 ## 👤 User Routes (`/api/users`)
 
 ### 1. Get User Profile
+
 ```http
 GET /api/users/profile
 Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -66,6 +72,7 @@ Authorization: Bearer <token>
 ```
 
 ### 2. Update User Profile
+
 ```http
 PUT /api/users/profile
 Authorization: Bearer <token>
@@ -97,6 +104,7 @@ Content-Type: application/json
 ```
 
 ### 3. Change Password
+
 ```http
 POST /api/users/change-password
 Authorization: Bearer <token>
@@ -110,6 +118,7 @@ Content-Type: application/json
 ```
 
 ### 4. Change Email Address
+
 ```http
 POST /api/users/change-email
 Authorization: Bearer <token>
@@ -122,6 +131,7 @@ Content-Type: application/json
 ```
 
 ### 5. Upload Avatar
+
 ```http
 POST /api/users/upload-avatar
 Authorization: Bearer <token>
@@ -133,12 +143,14 @@ Content-Type: application/json
 ```
 
 ### 6. Get User Analytics
+
 ```http
 GET /api/users/analytics
 Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -171,6 +183,7 @@ Authorization: Bearer <token>
 ```
 
 ### 7. Deactivate Account
+
 ```http
 POST /api/users/deactivate
 Authorization: Bearer <token>
@@ -185,12 +198,14 @@ Content-Type: application/json
 ### Admin Routes
 
 #### Get All Users (Admin Only)
+
 ```http
 GET /api/users/all?page=1&limit=10&search=john&status=active&role=user
 Authorization: Bearer <admin_token>
 ```
 
 #### Get User by ID (Admin Only)
+
 ```http
 GET /api/users/:userId
 Authorization: Bearer <admin_token>
@@ -201,12 +216,14 @@ Authorization: Bearer <admin_token>
 ## 💰 Wallet Routes (`/api/wallet`)
 
 ### 1. Get Wallet Balance
+
 ```http
 GET /api/wallet/balance
 Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -233,12 +250,14 @@ Authorization: Bearer <token>
 ```
 
 ### 2. Get Transaction History
+
 ```http
 GET /api/wallet/transactions?page=1&limit=20&type=deposit&startDate=2024-01-01&endDate=2024-01-31
 Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -273,6 +292,7 @@ Authorization: Bearer <token>
 ```
 
 ### 3. Reset Wallet Balance
+
 ```http
 POST /api/wallet/reset
 Authorization: Bearer <token>
@@ -284,6 +304,7 @@ Content-Type: application/json
 ```
 
 ### 4. Add Demo Funds
+
 ```http
 POST /api/wallet/add-funds
 Authorization: Bearer <token>
@@ -296,6 +317,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -319,6 +341,7 @@ Content-Type: application/json
 ```
 
 ### 5. Withdraw Demo Funds
+
 ```http
 POST /api/wallet/withdraw-funds
 Authorization: Bearer <token>
@@ -331,12 +354,14 @@ Content-Type: application/json
 ```
 
 ### 6. Get Wallet Analytics
+
 ```http
 GET /api/wallet/analytics
 Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -391,6 +416,7 @@ Authorization: Bearer <token>
 ### Admin Routes
 
 #### Reset User Wallet (Admin Only)
+
 ```http
 POST /api/wallet/admin/reset/:userId
 Authorization: Bearer <admin_token>
@@ -403,6 +429,7 @@ Content-Type: application/json
 ```
 
 #### Get All Wallets (Admin Only)
+
 ```http
 GET /api/wallet/admin/all?page=1&limit=10&sortBy=balance&sortOrder=desc
 Authorization: Bearer <admin_token>
@@ -413,6 +440,7 @@ Authorization: Bearer <admin_token>
 ## 🔧 PowerShell Testing Examples
 
 ### Test User Profile
+
 ```powershell
 # Get profile
 $headers = @{ "Authorization" = "Bearer $token" }
@@ -433,6 +461,7 @@ Invoke-RestMethod -Uri "http://localhost:5000/api/users/profile" -Method PUT -Bo
 ```
 
 ### Test Wallet Operations
+
 ```powershell
 # Get wallet balance
 Invoke-RestMethod -Uri "http://localhost:5000/api/wallet/balance" -Method GET -Headers $headers
@@ -454,6 +483,7 @@ Invoke-RestMethod -Uri "http://localhost:5000/api/wallet/transactions?page=1&lim
 ## 🛡️ Security Features
 
 ### User Routes Security
+
 - ✅ JWT Authentication required for all protected routes
 - ✅ Input validation and sanitization
 - ✅ Password verification for sensitive operations
@@ -462,6 +492,7 @@ Invoke-RestMethod -Uri "http://localhost:5000/api/wallet/transactions?page=1&lim
 - ✅ Admin-only routes with role-based access
 
 ### Wallet Routes Security
+
 - ✅ User can only access own wallet
 - ✅ Demo-only operations (no real money)
 - ✅ Amount validation and limits
@@ -473,21 +504,22 @@ Invoke-RestMethod -Uri "http://localhost:5000/api/wallet/transactions?page=1&lim
 
 ## 📊 Response Status Codes
 
-| Code | Description |
-|------|-------------|
-| 200  | Success |
-| 201  | Created |
-| 400  | Bad Request (validation error) |
+| Code | Description                          |
+| ---- | ------------------------------------ |
+| 200  | Success                              |
+| 201  | Created                              |
+| 400  | Bad Request (validation error)       |
 | 401  | Unauthorized (invalid/missing token) |
 | 403  | Forbidden (insufficient permissions) |
-| 404  | Not Found (user/wallet not found) |
-| 500  | Internal Server Error |
+| 404  | Not Found (user/wallet not found)    |
+| 500  | Internal Server Error                |
 
 ---
 
 ## 🎯 Error Codes
 
 ### User Routes
+
 - `USER_NOT_FOUND` - User not found
 - `PROFILE_FETCH_ERROR` - Failed to fetch profile
 - `PROFILE_UPDATE_ERROR` - Failed to update profile
@@ -502,6 +534,7 @@ Invoke-RestMethod -Uri "http://localhost:5000/api/wallet/transactions?page=1&lim
 - `DEACTIVATION_ERROR` - Failed to deactivate account
 
 ### Wallet Routes
+
 - `WALLET_NOT_FOUND` - Wallet not found
 - `WALLET_FETCH_ERROR` - Failed to fetch wallet
 - `INVALID_AMOUNT` - Invalid amount specified
@@ -518,6 +551,7 @@ Invoke-RestMethod -Uri "http://localhost:5000/api/wallet/transactions?page=1&lim
 ## ✅ Implementation Status
 
 ### User Routes ✅ Complete
+
 - [x] Get user profile with wallet information
 - [x] Update user profile (personal info, preferences, address)
 - [x] Change password with current password verification
@@ -529,6 +563,7 @@ Invoke-RestMethod -Uri "http://localhost:5000/api/wallet/transactions?page=1&lim
 - [x] Admin: Get specific user by ID
 
 ### Wallet Routes ✅ Complete
+
 - [x] Get wallet balance and details
 - [x] Get transaction history with pagination and filtering
 - [x] Reset wallet balance to default amount
@@ -539,6 +574,7 @@ Invoke-RestMethod -Uri "http://localhost:5000/api/wallet/transactions?page=1&lim
 - [x] Admin: Get all wallets with statistics
 
 ### Security & Validation ✅ Complete
+
 - [x] JWT authentication middleware
 - [x] Input validation for all endpoints
 - [x] Role-based access control (Admin routes)
@@ -552,6 +588,7 @@ Invoke-RestMethod -Uri "http://localhost:5000/api/wallet/transactions?page=1&lim
 ## 🚀 Next Steps
 
 The User & Wallet Routes are now complete and ready for:
+
 1. **Step 6**: Backend Testing & Verification
 2. Integration with frontend components
 3. Real-world testing with various scenarios

@@ -1,7 +1,10 @@
 import express from "express";
 import { Wallet, User } from "../models/index.js";
 import { authenticateToken, requireAdmin } from "../middleware/auth.js";
-import { validateWalletFunds, validateAdminWalletReset } from "../middleware/validation.js";
+import {
+  validateWalletFunds,
+  validateAdminWalletReset,
+} from "../middleware/validation.js";
 
 const router = express.Router();
 
@@ -39,9 +42,10 @@ router.get("/balance", authenticateToken, async (req, res) => {
 
     // Calculate additional wallet metrics
     const walletData = wallet.toObject();
-    walletData.profitLossPercentage = wallet.balance > 0 
-      ? ((wallet.analytics.profitLoss / wallet.balance) * 100).toFixed(2)
-      : 0;
+    walletData.profitLossPercentage =
+      wallet.balance > 0
+        ? ((wallet.analytics.profitLoss / wallet.balance) * 100).toFixed(2)
+        : 0;
 
     res.json({
       success: true,
@@ -71,7 +75,9 @@ router.get("/transactions", authenticateToken, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const type = req.query.type || "";
-    const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
+    const startDate = req.query.startDate
+      ? new Date(req.query.startDate)
+      : null;
     const endDate = req.query.endDate ? new Date(req.query.endDate) : null;
 
     const wallet = await Wallet.findOne({ user: req.user._id });
@@ -90,12 +96,12 @@ router.get("/transactions", authenticateToken, async (req, res) => {
     let transactions = [...wallet.transactions];
 
     if (type) {
-      transactions = transactions.filter(tx => tx.type === type);
+      transactions = transactions.filter((tx) => tx.type === type);
     }
 
     if (startDate && endDate) {
-      transactions = transactions.filter(tx => 
-        tx.createdAt >= startDate && tx.createdAt <= endDate
+      transactions = transactions.filter(
+        (tx) => tx.createdAt >= startDate && tx.createdAt <= endDate
       );
     }
 
@@ -162,7 +168,9 @@ router.post("/reset", authenticateToken, async (req, res) => {
     }
 
     const previousBalance = wallet.balance;
-    const defaultBalance = parseFloat(process.env.DEFAULT_DEMO_BALANCE || 10000);
+    const defaultBalance = parseFloat(
+      process.env.DEFAULT_DEMO_BALANCE || 10000
+    );
 
     // Reset wallet balance
     wallet.balance = defaultBalance;
@@ -176,7 +184,9 @@ router.post("/reset", authenticateToken, async (req, res) => {
       amount: defaultBalance - previousBalance,
       balanceBefore: previousBalance,
       balanceAfter: defaultBalance,
-      description: `Wallet reset to default demo balance. ${reason ? `Reason: ${reason}` : ''}`,
+      description: `Wallet reset to default demo balance. ${
+        reason ? `Reason: ${reason}` : ""
+      }`,
       reference: `RESET_${Date.now()}`,
       status: "completed",
       metadata: {
@@ -224,183 +234,193 @@ router.post("/reset", authenticateToken, async (req, res) => {
  * @desc    Add demo funds to wallet (simulation only)
  * @access  Private
  */
-router.post("/add-funds", authenticateToken, validateWalletFunds, async (req, res) => {
-  try {
-    const { amount, description } = req.body;
+router.post(
+  "/add-funds",
+  authenticateToken,
+  validateWalletFunds,
+  async (req, res) => {
+    try {
+      const { amount, description } = req.body;
 
-    if (!amount || amount <= 0) {
-      return res.status(400).json({
+      if (!amount || amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            message: "Amount must be a positive number",
+            code: "INVALID_AMOUNT",
+          },
+        });
+      }
+
+      if (amount > 100000) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            message: "Maximum demo deposit is $100,000",
+            code: "AMOUNT_TOO_HIGH",
+          },
+        });
+      }
+
+      const wallet = await Wallet.findOne({ user: req.user._id });
+
+      if (!wallet) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: "Wallet not found",
+            code: "WALLET_NOT_FOUND",
+          },
+        });
+      }
+
+      const previousBalance = wallet.balance;
+      const newBalance = previousBalance + parseFloat(amount);
+
+      // Update wallet balance
+      wallet.balance = newBalance;
+      wallet.equity = newBalance;
+      wallet.freeMargin = newBalance - wallet.margin;
+
+      // Add deposit transaction
+      const depositTransaction = {
+        type: "deposit",
+        amount: parseFloat(amount),
+        balanceBefore: previousBalance,
+        balanceAfter: newBalance,
+        description: description || `Demo funds deposit of $${amount}`,
+        reference: `DEPOSIT_${Date.now()}`,
+        status: "completed",
+        metadata: {
+          depositType: "demo",
+          addedBy: "user",
+        },
+      };
+
+      wallet.transactions.push(depositTransaction);
+
+      // Update analytics
+      wallet.analytics.totalDeposits += parseFloat(amount);
+
+      await wallet.save();
+
+      res.json({
+        success: true,
+        message: "Demo funds added successfully",
+        data: {
+          wallet: wallet.toObject(),
+          transaction: depositTransaction,
+        },
+      });
+    } catch (error) {
+      console.error("Add funds error:", error);
+      res.status(500).json({
         success: false,
         error: {
-          message: "Amount must be a positive number",
-          code: "INVALID_AMOUNT",
+          message: "Failed to add demo funds",
+          code: "ADD_FUNDS_ERROR",
         },
       });
     }
-
-    if (amount > 100000) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          message: "Maximum demo deposit is $100,000",
-          code: "AMOUNT_TOO_HIGH",
-        },
-      });
-    }
-
-    const wallet = await Wallet.findOne({ user: req.user._id });
-
-    if (!wallet) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          message: "Wallet not found",
-          code: "WALLET_NOT_FOUND",
-        },
-      });
-    }
-
-    const previousBalance = wallet.balance;
-    const newBalance = previousBalance + parseFloat(amount);
-
-    // Update wallet balance
-    wallet.balance = newBalance;
-    wallet.equity = newBalance;
-    wallet.freeMargin = newBalance - wallet.margin;
-
-    // Add deposit transaction
-    const depositTransaction = {
-      type: "deposit",
-      amount: parseFloat(amount),
-      balanceBefore: previousBalance,
-      balanceAfter: newBalance,
-      description: description || `Demo funds deposit of $${amount}`,
-      reference: `DEPOSIT_${Date.now()}`,
-      status: "completed",
-      metadata: {
-        depositType: "demo",
-        addedBy: "user",
-      },
-    };
-
-    wallet.transactions.push(depositTransaction);
-
-    // Update analytics
-    wallet.analytics.totalDeposits += parseFloat(amount);
-
-    await wallet.save();
-
-    res.json({
-      success: true,
-      message: "Demo funds added successfully",
-      data: {
-        wallet: wallet.toObject(),
-        transaction: depositTransaction,
-      },
-    });
-  } catch (error) {
-    console.error("Add funds error:", error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: "Failed to add demo funds",
-        code: "ADD_FUNDS_ERROR",
-      },
-    });
   }
-});
+);
 
 /**
  * @route   POST /api/wallet/withdraw-funds
  * @desc    Withdraw demo funds from wallet (simulation only)
  * @access  Private
  */
-router.post("/withdraw-funds", authenticateToken, validateWalletFunds, async (req, res) => {
-  try {
-    const { amount, description } = req.body;
+router.post(
+  "/withdraw-funds",
+  authenticateToken,
+  validateWalletFunds,
+  async (req, res) => {
+    try {
+      const { amount, description } = req.body;
 
-    if (!amount || amount <= 0) {
-      return res.status(400).json({
+      if (!amount || amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            message: "Amount must be a positive number",
+            code: "INVALID_AMOUNT",
+          },
+        });
+      }
+
+      const wallet = await Wallet.findOne({ user: req.user._id });
+
+      if (!wallet) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: "Wallet not found",
+            code: "WALLET_NOT_FOUND",
+          },
+        });
+      }
+
+      if (amount > wallet.freeMargin) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            message: "Insufficient free margin for withdrawal",
+            code: "INSUFFICIENT_FUNDS",
+            available: wallet.freeMargin,
+          },
+        });
+      }
+
+      const previousBalance = wallet.balance;
+      const newBalance = previousBalance - parseFloat(amount);
+
+      // Update wallet balance
+      wallet.balance = newBalance;
+      wallet.equity = newBalance;
+      wallet.freeMargin = newBalance - wallet.margin;
+
+      // Add withdrawal transaction
+      const withdrawalTransaction = {
+        type: "withdrawal",
+        amount: -parseFloat(amount),
+        balanceBefore: previousBalance,
+        balanceAfter: newBalance,
+        description: description || `Demo funds withdrawal of $${amount}`,
+        reference: `WITHDRAWAL_${Date.now()}`,
+        status: "completed",
+        metadata: {
+          withdrawalType: "demo",
+          requestedBy: "user",
+        },
+      };
+
+      wallet.transactions.push(withdrawalTransaction);
+
+      // Update analytics
+      wallet.analytics.totalWithdrawals += parseFloat(amount);
+
+      await wallet.save();
+
+      res.json({
+        success: true,
+        message: "Demo funds withdrawn successfully",
+        data: {
+          wallet: wallet.toObject(),
+          transaction: withdrawalTransaction,
+        },
+      });
+    } catch (error) {
+      console.error("Withdraw funds error:", error);
+      res.status(500).json({
         success: false,
         error: {
-          message: "Amount must be a positive number",
-          code: "INVALID_AMOUNT",
+          message: "Failed to withdraw demo funds",
+          code: "WITHDRAW_FUNDS_ERROR",
         },
       });
     }
-
-    const wallet = await Wallet.findOne({ user: req.user._id });
-
-    if (!wallet) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          message: "Wallet not found",
-          code: "WALLET_NOT_FOUND",
-        },
-      });
-    }
-
-    if (amount > wallet.freeMargin) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          message: "Insufficient free margin for withdrawal",
-          code: "INSUFFICIENT_FUNDS",
-          available: wallet.freeMargin,
-        },
-      });
-    }
-
-    const previousBalance = wallet.balance;
-    const newBalance = previousBalance - parseFloat(amount);
-
-    // Update wallet balance
-    wallet.balance = newBalance;
-    wallet.equity = newBalance;
-    wallet.freeMargin = newBalance - wallet.margin;
-
-    // Add withdrawal transaction
-    const withdrawalTransaction = {
-      type: "withdrawal",
-      amount: -parseFloat(amount),
-      balanceBefore: previousBalance,
-      balanceAfter: newBalance,
-      description: description || `Demo funds withdrawal of $${amount}`,
-      reference: `WITHDRAWAL_${Date.now()}`,
-      status: "completed",
-      metadata: {
-        withdrawalType: "demo",
-        requestedBy: "user",
-      },
-    };
-
-    wallet.transactions.push(withdrawalTransaction);
-
-    // Update analytics
-    wallet.analytics.totalWithdrawals += parseFloat(amount);
-
-    await wallet.save();
-
-    res.json({
-      success: true,
-      message: "Demo funds withdrawn successfully",
-      data: {
-        wallet: wallet.toObject(),
-        transaction: withdrawalTransaction,
-      },
-    });
-  } catch (error) {
-    console.error("Withdraw funds error:", error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: "Failed to withdraw demo funds",
-        code: "WITHDRAW_FUNDS_ERROR",
-      },
-    });
   }
-});
+);
 
 /**
  * @route   GET /api/wallet/analytics
@@ -426,27 +446,31 @@ router.get("/analytics", authenticateToken, async (req, res) => {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const recentTransactions = wallet.transactions.filter(tx => 
-      new Date(tx.createdAt) >= thirtyDaysAgo
+    const recentTransactions = wallet.transactions.filter(
+      (tx) => new Date(tx.createdAt) >= thirtyDaysAgo
     );
 
-    const last7DaysTransactions = wallet.transactions.filter(tx => 
-      new Date(tx.createdAt) >= sevenDaysAgo
+    const last7DaysTransactions = wallet.transactions.filter(
+      (tx) => new Date(tx.createdAt) >= sevenDaysAgo
     );
 
     // Transaction type summary
     const transactionSummary = {
-      deposits: wallet.transactions.filter(tx => tx.type === "deposit").length,
-      withdrawals: wallet.transactions.filter(tx => tx.type === "withdrawal").length,
-      trades: wallet.transactions.filter(tx => 
-        tx.type === "trade_profit" || tx.type === "trade_loss"
+      deposits: wallet.transactions.filter((tx) => tx.type === "deposit")
+        .length,
+      withdrawals: wallet.transactions.filter((tx) => tx.type === "withdrawal")
+        .length,
+      trades: wallet.transactions.filter(
+        (tx) => tx.type === "trade_profit" || tx.type === "trade_loss"
       ).length,
-      resets: wallet.transactions.filter(tx => tx.type === "reset").length,
+      resets: wallet.transactions.filter((tx) => tx.type === "reset").length,
     };
 
     // Performance metrics
-    const profitTransactions = wallet.transactions.filter(tx => tx.amount > 0);
-    const lossTransactions = wallet.transactions.filter(tx => tx.amount < 0);
+    const profitTransactions = wallet.transactions.filter(
+      (tx) => tx.amount > 0
+    );
+    const lossTransactions = wallet.transactions.filter((tx) => tx.amount < 0);
 
     const analytics = {
       balance: {
@@ -455,9 +479,10 @@ router.get("/analytics", authenticateToken, async (req, res) => {
         margin: wallet.margin,
         freeMargin: wallet.freeMargin,
         profitLoss: wallet.analytics.profitLoss,
-        profitLossPercentage: wallet.balance > 0 
-          ? ((wallet.analytics.profitLoss / wallet.balance) * 100).toFixed(2)
-          : 0,
+        profitLossPercentage:
+          wallet.balance > 0
+            ? ((wallet.analytics.profitLoss / wallet.balance) * 100).toFixed(2)
+            : 0,
       },
       trading: {
         totalTrades: wallet.analytics.totalTrades,
@@ -475,15 +500,23 @@ router.get("/analytics", authenticateToken, async (req, res) => {
       performance: {
         totalDeposits: wallet.analytics.totalDeposits,
         totalWithdrawals: wallet.analytics.totalWithdrawals,
-        netFlow: wallet.analytics.totalDeposits - wallet.analytics.totalWithdrawals,
+        netFlow:
+          wallet.analytics.totalDeposits - wallet.analytics.totalWithdrawals,
         profitableTrades: profitTransactions.length,
         losingTrades: lossTransactions.length,
       },
       risk: {
         leverageUsed: wallet.leverage,
-        marginLevel: wallet.margin > 0 ? ((wallet.equity / wallet.margin) * 100).toFixed(2) : 0,
-        riskLevel: wallet.freeMargin < (wallet.balance * 0.2) ? "High" : 
-                   wallet.freeMargin < (wallet.balance * 0.5) ? "Medium" : "Low",
+        marginLevel:
+          wallet.margin > 0
+            ? ((wallet.equity / wallet.margin) * 100).toFixed(2)
+            : 0,
+        riskLevel:
+          wallet.freeMargin < wallet.balance * 0.2
+            ? "High"
+            : wallet.freeMargin < wallet.balance * 0.5
+            ? "Medium"
+            : "Low",
       },
       settings: {
         currency: wallet.currency,
@@ -514,90 +547,98 @@ router.get("/analytics", authenticateToken, async (req, res) => {
  * @desc    Reset user's wallet balance (Admin only)
  * @access  Private/Admin
  */
-router.post("/admin/reset/:userId", authenticateToken, requireAdmin, validateAdminWalletReset, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { amount, reason } = req.body;
+router.post(
+  "/admin/reset/:userId",
+  authenticateToken,
+  requireAdmin,
+  validateAdminWalletReset,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { amount, reason } = req.body;
 
-    const wallet = await Wallet.findOne({ user: userId });
-    const user = await User.findById(userId);
+      const wallet = await Wallet.findOne({ user: userId });
+      const user = await User.findById(userId);
 
-    if (!wallet) {
-      return res.status(404).json({
+      if (!wallet) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: "Wallet not found",
+            code: "WALLET_NOT_FOUND",
+          },
+        });
+      }
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: "User not found",
+            code: "USER_NOT_FOUND",
+          },
+        });
+      }
+
+      const previousBalance = wallet.balance;
+      const newBalance = amount
+        ? parseFloat(amount)
+        : parseFloat(process.env.DEFAULT_DEMO_BALANCE || 10000);
+
+      // Reset wallet balance
+      wallet.balance = newBalance;
+      wallet.equity = newBalance;
+      wallet.margin = 0;
+      wallet.freeMargin = newBalance;
+
+      // Add admin reset transaction
+      const resetTransaction = {
+        type: "reset",
+        amount: newBalance - previousBalance,
+        balanceBefore: previousBalance,
+        balanceAfter: newBalance,
+        description: `Admin wallet reset. ${reason ? `Reason: ${reason}` : ""}`,
+        reference: `ADMIN_RESET_${Date.now()}`,
+        status: "completed",
+        metadata: {
+          resetBy: "admin",
+          adminId: req.user._id,
+          adminEmail: req.user.email,
+          previousBalance,
+          resetAmount: newBalance,
+          reason: reason || "Admin requested reset",
+        },
+      };
+
+      wallet.transactions.push(resetTransaction);
+
+      await wallet.save();
+
+      res.json({
+        success: true,
+        message: `Wallet balance reset successfully for user ${user.email}`,
+        data: {
+          wallet: wallet.toObject(),
+          resetTransaction,
+          user: {
+            id: user._id,
+            email: user.email,
+            name: `${user.firstName} ${user.lastName}`,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Admin wallet reset error:", error);
+      res.status(500).json({
         success: false,
         error: {
-          message: "Wallet not found",
-          code: "WALLET_NOT_FOUND",
+          message: "Failed to reset wallet balance",
+          code: "ADMIN_WALLET_RESET_ERROR",
         },
       });
     }
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          message: "User not found",
-          code: "USER_NOT_FOUND",
-        },
-      });
-    }
-
-    const previousBalance = wallet.balance;
-    const newBalance = amount ? parseFloat(amount) : parseFloat(process.env.DEFAULT_DEMO_BALANCE || 10000);
-
-    // Reset wallet balance
-    wallet.balance = newBalance;
-    wallet.equity = newBalance;
-    wallet.margin = 0;
-    wallet.freeMargin = newBalance;
-
-    // Add admin reset transaction
-    const resetTransaction = {
-      type: "reset",
-      amount: newBalance - previousBalance,
-      balanceBefore: previousBalance,
-      balanceAfter: newBalance,
-      description: `Admin wallet reset. ${reason ? `Reason: ${reason}` : ''}`,
-      reference: `ADMIN_RESET_${Date.now()}`,
-      status: "completed",
-      metadata: {
-        resetBy: "admin",
-        adminId: req.user._id,
-        adminEmail: req.user.email,
-        previousBalance,
-        resetAmount: newBalance,
-        reason: reason || "Admin requested reset",
-      },
-    };
-
-    wallet.transactions.push(resetTransaction);
-
-    await wallet.save();
-
-    res.json({
-      success: true,
-      message: `Wallet balance reset successfully for user ${user.email}`,
-      data: {
-        wallet: wallet.toObject(),
-        resetTransaction,
-        user: {
-          id: user._id,
-          email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
-        },
-      },
-    });
-  } catch (error) {
-    console.error("Admin wallet reset error:", error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: "Failed to reset wallet balance",
-        code: "ADMIN_WALLET_RESET_ERROR",
-      },
-    });
   }
-});
+);
 
 /**
  * @route   GET /api/wallet/admin/all
@@ -631,10 +672,17 @@ router.get("/admin/all", authenticateToken, requireAdmin, async (req, res) => {
     const summary = {
       totalWallets: allWallets.length,
       totalBalance: allWallets.reduce((sum, wallet) => sum + wallet.balance, 0),
-      averageBalance: allWallets.length > 0 
-        ? (allWallets.reduce((sum, wallet) => sum + wallet.balance, 0) / allWallets.length).toFixed(2)
-        : 0,
-      totalProfitLoss: allWallets.reduce((sum, wallet) => sum + (wallet.analytics?.profitLoss || 0), 0),
+      averageBalance:
+        allWallets.length > 0
+          ? (
+              allWallets.reduce((sum, wallet) => sum + wallet.balance, 0) /
+              allWallets.length
+            ).toFixed(2)
+          : 0,
+      totalProfitLoss: allWallets.reduce(
+        (sum, wallet) => sum + (wallet.analytics?.profitLoss || 0),
+        0
+      ),
     };
 
     res.json({
