@@ -16,6 +16,7 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import DashboardPage from "./pages/DashboardPage";
 import Trading from "./pages/Trading";
+import AdminPanel from "./pages/AdminPanel";
 import NotFoundPage from "./pages/NotFoundPage";
 
 // Components
@@ -105,6 +106,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Trading />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute adminOnly>
+                  <AdminPanel />
                 </ProtectedRoute>
               }
             />

@@ -93,6 +93,7 @@ app.use("/api/test-auth", testAuthRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/wallet", walletRoutes);
 app.use("/api/trades", tradeRoutes);
+app.use("/api/trading", tradeRoutes); // Also map to /api/trading path for frontend compatibility
 app.use("/api/market", marketRoutes);
 app.use("/api/admin", adminRoutes);
 

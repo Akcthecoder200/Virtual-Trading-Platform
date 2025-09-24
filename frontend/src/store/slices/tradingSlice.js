@@ -1,20 +1,30 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import toast from "react-hot-toast";
+import tradingService from "../../services/tradingService";
 
 // Async thunks for trading operations
 export const getMarketData = createAsyncThunk(
   "trading/getMarketData",
-  async (symbols = [], { rejectWithValue, dispatch }) => {
+  async (symbols = [], { rejectWithValue }) => {
     try {
-      console.log("🔄 Redux getMarketData: Fetching market data", symbols);
+      console.log(
+        "🔄 Redux getMarketData: Fetching market data from API",
+        symbols
+      );
 
-      // For now, simulate price updates instead of making API calls
-      dispatch(simulatePriceUpdate());
+      const response = await tradingService.getMarketData();
 
-      console.log("✅ Redux getMarketData: Market data updated successfully");
-      return { success: true, timestamp: new Date().toISOString() };
+      if (response.success) {
+        console.log(
+          "✅ Redux getMarketData: Market data fetched successfully",
+          response.data
+        );
+        return response;
+      } else {
+        throw new Error("Failed to fetch market data");
+      }
     } catch (error) {
-      const message = "Failed to fetch market data";
+      const message = error.message || "Failed to fetch market data";
       console.error("❌ Redux getMarketData: Failed", {
         error: message,
         fullError: error,
@@ -26,43 +36,29 @@ export const getMarketData = createAsyncThunk(
 
 export const placeTrade = createAsyncThunk(
   "trading/placeTrade",
-  async (tradeData, { rejectWithValue, getState }) => {
+  async (tradeData, { rejectWithValue }) => {
     try {
-      console.log("🔄 Redux placeTrade: Placing trade", tradeData);
+      console.log("🔄 Redux placeTrade: Placing trade via API", tradeData);
 
-      const state = getState();
-      const stock = state.trading.stocks.find(
-        (s) => s.symbol === tradeData.symbol
-      );
+      const response = await tradingService.placeTrade(tradeData);
 
-      if (!stock) {
-        throw new Error(`Stock ${tradeData.symbol} not found`);
+      if (response.success) {
+        console.log(
+          "✅ Redux placeTrade: Trade placed successfully",
+          response.data
+        );
+
+        const { action, symbol, quantity } = tradeData;
+        const actionText = action.toLowerCase() === "buy" ? "bought" : "sold";
+        toast.success(
+          response.data.message ||
+            `Successfully ${actionText} ${quantity} shares of ${symbol}`
+        );
+
+        return response.data;
+      } else {
+        throw new Error("Failed to place trade");
       }
-
-      // Create mock trade
-      const mockTrade = {
-        _id: Date.now().toString(),
-        symbol: tradeData.symbol,
-        action: tradeData.action,
-        quantity: tradeData.quantity,
-        price: stock.price,
-        orderType: tradeData.orderType || "market",
-        status: "completed",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      console.log("✅ Redux placeTrade: Trade placed successfully", mockTrade);
-
-      const { action, symbol, quantity } = tradeData;
-      const actionText = action.toLowerCase() === "buy" ? "bought" : "sold";
-      toast.success(
-        `Successfully ${actionText} ${quantity} shares of ${symbol} at $${stock.price.toFixed(
-          2
-        )}`
-      );
-
-      return { trade: mockTrade };
     } catch (error) {
       const message = error.message || "Failed to place trade";
       console.error("❌ Redux placeTrade: Failed", {
@@ -77,17 +73,23 @@ export const placeTrade = createAsyncThunk(
 
 export const getTrades = createAsyncThunk(
   "trading/getTrades",
-  async (params = {}, { rejectWithValue, getState }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
-      console.log("🔄 Redux getTrades: Fetching trades", params);
+      console.log("🔄 Redux getTrades: Fetching trades from API", params);
 
-      const state = getState();
-      const trades = state.trading.trades;
+      const response = await tradingService.getTrades(params);
 
-      console.log("✅ Redux getTrades: Trades fetched successfully", trades);
-      return { trades };
+      if (response.success) {
+        console.log(
+          "✅ Redux getTrades: Trades fetched successfully",
+          response.data
+        );
+        return response.data;
+      } else {
+        throw new Error("Failed to fetch trades");
+      }
     } catch (error) {
-      const message = "Failed to fetch trades";
+      const message = error.message || "Failed to fetch trades";
       console.error("❌ Redux getTrades: Failed", {
         error: message,
         fullError: error,
@@ -99,21 +101,25 @@ export const getTrades = createAsyncThunk(
 
 export const closeTrade = createAsyncThunk(
   "trading/closeTrade",
-  async (tradeId, { rejectWithValue, getState }) => {
+  async ({ tradeId, exitPrice }, { rejectWithValue }) => {
     try {
-      console.log("🔄 Redux closeTrade: Closing trade", tradeId);
+      console.log("🔄 Redux closeTrade: Closing trade via API", {
+        tradeId,
+        exitPrice,
+      });
 
-      const state = getState();
-      const trade = state.trading.trades.find((t) => t._id === tradeId);
+      const response = await tradingService.closeTrade(tradeId, exitPrice);
 
-      if (!trade) {
-        throw new Error("Trade not found");
+      if (response.success) {
+        console.log(
+          "✅ Redux closeTrade: Trade closed successfully",
+          response.data
+        );
+        toast.success(response.data.message || "Trade closed successfully");
+        return response.data;
+      } else {
+        throw new Error("Failed to close trade");
       }
-
-      console.log("✅ Redux closeTrade: Trade closed successfully", trade);
-      toast.success("Trade closed successfully");
-
-      return { tradeId, closedAt: new Date().toISOString() };
     } catch (error) {
       const message = error.message || "Failed to close trade";
       console.error("❌ Redux closeTrade: Failed", {
@@ -121,6 +127,34 @@ export const closeTrade = createAsyncThunk(
         fullError: error,
       });
       toast.error(message);
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const getPortfolio = createAsyncThunk(
+  "trading/getPortfolio",
+  async (_, { rejectWithValue }) => {
+    try {
+      console.log("🔄 Redux getPortfolio: Fetching portfolio from API");
+
+      const response = await tradingService.getPortfolio();
+
+      if (response.success) {
+        console.log(
+          "✅ Redux getPortfolio: Portfolio fetched successfully",
+          response.data
+        );
+        return response.data;
+      } else {
+        throw new Error("Failed to fetch portfolio");
+      }
+    } catch (error) {
+      const message = error.message || "Failed to fetch portfolio";
+      console.error("❌ Redux getPortfolio: Failed", {
+        error: message,
+        fullError: error,
+      });
       return rejectWithValue(message);
     }
   }
@@ -199,6 +233,7 @@ const initialState = {
   stocks: mockStocks,
   trades: [],
   positions: [],
+  portfolio: null,
   watchlist: [],
   marketData: {},
   isLoading: false,
@@ -217,7 +252,7 @@ const tradingSlice = createSlice({
       state.error = null;
       state.tradeError = null;
     },
-    clearTrading: (state) => {
+    clearTrading: () => {
       return { ...initialState, stocks: mockStocks };
     },
     updateStockPrice: (state, action) => {
@@ -273,6 +308,10 @@ const tradingSlice = createSlice({
       .addCase(getMarketData.fulfilled, (state, action) => {
         state.isLoading = false;
         state.lastUpdated = action.payload.timestamp;
+        // Update stocks with real market data
+        if (action.payload.data) {
+          state.stocks = action.payload.data;
+        }
         state.error = null;
       })
       .addCase(getMarketData.rejected, (state, action) => {
@@ -315,13 +354,31 @@ const tradingSlice = createSlice({
 
       // Close Trade cases
       .addCase(closeTrade.fulfilled, (state, action) => {
-        // Update the trade status
-        const tradeId = action.payload.tradeId;
-        state.trades = state.trades.map((trade) =>
-          trade._id === tradeId
-            ? { ...trade, status: "closed", closedAt: action.payload.closedAt }
-            : trade
-        );
+        // Update the trade with the closed trade data
+        if (action.payload.trade) {
+          const tradeIndex = state.trades.findIndex(
+            (trade) => trade._id === action.payload.trade._id
+          );
+          if (tradeIndex !== -1) {
+            state.trades[tradeIndex] = action.payload.trade;
+          }
+        }
+      })
+
+      // Get Portfolio cases
+      .addCase(getPortfolio.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getPortfolio.fulfilled, (state, action) => {
+        state.isLoading = false;
+        // Store portfolio data
+        state.portfolio = action.payload;
+        state.error = null;
+      })
+      .addCase(getPortfolio.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
       });
   },
 });

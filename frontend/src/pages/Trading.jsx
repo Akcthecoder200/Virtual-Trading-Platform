@@ -6,6 +6,8 @@ import StockList from "../components/trading/StockList";
 import TradingForm from "../components/trading/TradingForm";
 import TradeHistory from "../components/trading/TradeHistory";
 import MarketWatch from "../components/trading/MarketWatch";
+import ChartContainer from "../components/trading/ChartContainer";
+import StockSearch from "../components/trading/StockSearch";
 import { useTradingLoading, useTradingError } from "../store/hooks";
 import toast from "react-hot-toast";
 
@@ -47,10 +49,19 @@ const Trading = () => {
 
       <main className="p-6">
         <div className="max-w-7xl mx-auto space-y-6">
+          {/* Stock Search */}
+          <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <h2 className="text-xl font-bold text-white mb-4">Search Stocks</h2>
+            <StockSearch onStockSelect={handleStockSelect} />
+          </div>
+
           {/* Market Watch */}
           <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
             <MarketWatch />
           </div>
+
+          {/* Interactive Charts */}
+          <ChartContainer selectedStock={selectedStock} />
 
           {/* Stock List and Trading Form */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

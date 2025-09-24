@@ -8,6 +8,7 @@ import {
   Menu,
   BarChart3,
   Home,
+  Shield,
 } from "lucide-react";
 import { useUser, useAppDispatch } from "../store/hooks";
 import { logoutUser } from "../store/slices/authSlice";
@@ -28,7 +29,7 @@ const DashboardHeader = () => {
       toast.success("Logged out successfully");
       navigate("/");
     } catch (error) {
-      toast.error("Logout failed");
+      toast.error("Logout failed: " + (error.message || "Unknown error"));
     }
   };
 
@@ -88,6 +89,19 @@ const DashboardHeader = () => {
               <BarChart3 className="w-4 h-4" />
               <span>Trading</span>
             </button>
+            {user?.role === "admin" && (
+              <button
+                onClick={() => navigate("/admin")}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
+                  location.pathname === "/admin"
+                    ? "bg-red-600 text-white"
+                    : "text-gray-400 hover:text-white hover:bg-gray-700"
+                }`}
+              >
+                <Shield className="w-4 h-4" />
+                <span>Admin</span>
+              </button>
+            )}
           </nav>
 
           <div className="hidden lg:block">

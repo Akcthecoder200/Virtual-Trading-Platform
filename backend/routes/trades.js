@@ -1,4 +1,14 @@
 import express from "express";
+import {
+  getMarketData,
+  placeTrade,
+  getTrades,
+  closeTrade,
+  getPortfolio,
+  getOpenPositions,
+} from "../controllers/tradingController.js";
+import { auth } from "../middleware/auth.js";
+
 const router = express.Router();
 
 /**
@@ -9,31 +19,61 @@ const router = express.Router();
 router.get("/test", (req, res) => {
   res.json({
     success: true,
-    message: "Trades routes are working",
+    message: "Trading routes are working",
     timestamp: new Date().toISOString(),
   });
 });
 
-// Placeholder routes - will be implemented in later steps
-router.post("/buy", (req, res) => {
-  res.status(501).json({
-    success: false,
-    error: { message: "Route not implemented yet - coming in later steps" },
-  });
-});
+// Specific routes must come BEFORE general routes to avoid conflicts
 
-router.post("/sell", (req, res) => {
-  res.status(501).json({
-    success: false,
-    error: { message: "Route not implemented yet - coming in later steps" },
-  });
-});
+// Market data endpoints
+/**
+ * @route   GET /api/trades/market-data
+ * @desc    Get current market data for available stocks
+ * @access  Private
+ */
+router.get("/market-data", auth, getMarketData);
 
-router.get("/history", (req, res) => {
-  res.status(501).json({
-    success: false,
-    error: { message: "Route not implemented yet - coming in later steps" },
-  });
-});
+// Portfolio endpoints
+/**
+ * @route   GET /api/trades/portfolio
+ * @desc    Get user's portfolio summary
+ * @access  Private
+ */
+router.get("/portfolio", auth, getPortfolio);
+
+/**
+ * @route   GET /api/trades/positions
+ * @desc    Get user's open positions
+ * @access  Private
+ */
+router.get("/positions", auth, getOpenPositions);
+
+// Trading endpoints
+/**
+ * @route   POST /api/trades
+ * @desc    Place a new trade (buy or sell)
+ * @access  Private
+ */
+router.post("/", auth, placeTrade);
+
+/**
+ * @route   GET /api/trades
+ * @desc    Get user's trade history with pagination
+ * @access  Private
+ */
+router.get("/", auth, getTrades);
+
+/**
+ * @route   PUT /api/trades/:id/close
+ * @desc    Close an open trade
+ * @access  Private
+ */
+router.put("/:id/close", auth, closeTrade);
+
+// Legacy routes for backward compatibility
+router.post("/buy", auth, placeTrade);
+router.post("/sell", auth, placeTrade);
+router.get("/history", auth, getTrades);
 
 export default router;
