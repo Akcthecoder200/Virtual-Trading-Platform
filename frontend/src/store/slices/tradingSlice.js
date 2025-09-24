@@ -48,13 +48,7 @@ export const placeTrade = createAsyncThunk(
           response.data
         );
 
-        const { action, symbol, quantity } = tradeData;
-        const actionText = action.toLowerCase() === "buy" ? "bought" : "sold";
-        toast.success(
-          response.data.message ||
-            `Successfully ${actionText} ${quantity} shares of ${symbol}`
-        );
-
+        toast.success(response.data.message);
         return response.data;
       } else {
         throw new Error("Failed to place trade");
@@ -70,6 +64,9 @@ export const placeTrade = createAsyncThunk(
     }
   }
 );
+
+// Alias for backward compatibility
+export const executeTrade = placeTrade;
 
 export const getTrades = createAsyncThunk(
   "trading/getTrades",
@@ -160,6 +157,61 @@ export const getPortfolio = createAsyncThunk(
   }
 );
 
+export const getPendingOrders = createAsyncThunk(
+  "trading/getPendingOrders",
+  async (_, { rejectWithValue }) => {
+    try {
+      console.log(
+        "🔄 Redux getPendingOrders: Fetching pending orders from API"
+      );
+
+      const response = await tradingService.getPendingOrders();
+
+      if (response.success) {
+        console.log(
+          "✅ Redux getPendingOrders: Pending orders fetched successfully",
+          response.data
+        );
+        return response.data;
+      } else {
+        throw new Error("Failed to fetch pending orders");
+      }
+    } catch (error) {
+      const message = error.message || "Failed to fetch pending orders";
+      console.error("❌ Redux getPendingOrders: Failed", {
+        error: message,
+        fullError: error,
+      });
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const cancelOrder = createAsyncThunk(
+  "trading/cancelOrder",
+  async (orderId, { rejectWithValue }) => {
+    try {
+      console.log("🔄 Redux cancelOrder: Cancelling order", orderId);
+
+      const response = await tradingService.cancelOrder(orderId);
+
+      if (response.success) {
+        console.log("✅ Redux cancelOrder: Order cancelled successfully");
+        return orderId;
+      } else {
+        throw new Error("Failed to cancel order");
+      }
+    } catch (error) {
+      const message = error.message || "Failed to cancel order";
+      console.error("❌ Redux cancelOrder: Failed", {
+        error: message,
+        orderId,
+      });
+      return rejectWithValue(message);
+    }
+  }
+);
+
 // Mock stock data for demonstration (will be replaced with real API)
 const mockStocks = [
   {
@@ -233,6 +285,7 @@ const initialState = {
   stocks: mockStocks,
   trades: [],
   positions: [],
+  pendingOrders: [],
   portfolio: null,
   watchlist: [],
   marketData: {},
@@ -377,6 +430,39 @@ const tradingSlice = createSlice({
         state.error = null;
       })
       .addCase(getPortfolio.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+
+      // Get Pending Orders cases
+      .addCase(getPendingOrders.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getPendingOrders.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.pendingOrders = action.payload;
+        state.error = null;
+      })
+      .addCase(getPendingOrders.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+
+      // Cancel Order cases
+      .addCase(cancelOrder.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(cancelOrder.fulfilled, (state, action) => {
+        state.isLoading = false;
+        // Remove the cancelled order from pendingOrders
+        state.pendingOrders = state.pendingOrders.filter(
+          (order) => order._id !== action.payload
+        );
+        state.error = null;
+      })
+      .addCase(cancelOrder.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       });

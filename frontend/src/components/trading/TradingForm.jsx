@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
-import {
-  useWalletBalance,
-  useTradingLoading,
-} from "../../hooks/useReduxSelectors";
+import { useWalletBalance, useTradingLoading } from "../../store/hooks";
 import { executeTrade } from "../../store/slices/tradingSlice";
 import { toast } from "react-hot-toast";
 

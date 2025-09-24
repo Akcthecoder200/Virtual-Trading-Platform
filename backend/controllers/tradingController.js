@@ -111,15 +111,26 @@ export const placeTrade = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { symbol, action, quantity, price } = req.body;
+    const {
+      symbol,
+      action,
+      quantity,
+      orderType = "market",
+      limitPrice,
+      stopPrice,
+      takeProfitPrice,
+      timeInForce = "GTC",
+      expiryDate,
+      estimatedCost,
+    } = req.body;
     const userId = req.user.id;
 
-    // Validation
-    if (!symbol || !action || !quantity || !price) {
+    // Basic validation
+    if (!symbol || !action || !quantity) {
       return res.status(400).json({
         success: false,
         error: {
-          message: "Missing required fields: symbol, action, quantity, price",
+          message: "Missing required fields: symbol, action, quantity",
         },
       });
     }
@@ -131,11 +142,121 @@ export const placeTrade = async (req, res) => {
       });
     }
 
-    if (quantity <= 0 || price <= 0) {
+    if (quantity <= 0) {
       return res.status(400).json({
         success: false,
-        error: { message: "Quantity and price must be positive numbers" },
+        error: { message: "Quantity must be a positive number" },
       });
+    }
+
+    // Validate order type specific requirements
+    const validOrderTypes = [
+      "market",
+      "limit",
+      "stop_loss",
+      "stop_limit",
+      "trailing_stop",
+    ];
+    if (!validOrderTypes.includes(orderType)) {
+      return res.status(400).json({
+        success: false,
+        error: { message: "Invalid order type" },
+      });
+    }
+
+    // Order type specific validation
+    if (
+      (orderType === "limit" || orderType === "stop_limit") &&
+      (!limitPrice || limitPrice <= 0)
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: { message: "Limit price is required for limit orders" },
+      });
+    }
+
+    if (
+      (orderType === "stop_loss" ||
+        orderType === "stop_limit" ||
+        orderType === "trailing_stop") &&
+      (!stopPrice || stopPrice <= 0)
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: { message: "Stop price is required for stop orders" },
+      });
+    }
+
+    // Get current market price for the symbol
+    const marketData = MOCK_STOCKS[symbol.toUpperCase()];
+    if (!marketData) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        error: { message: "Symbol not found or not supported" },
+      });
+    }
+
+    // Determine execution price based on order type
+    let executionPrice;
+    let shouldExecuteImmediately = false;
+
+    switch (orderType) {
+      case "market":
+        executionPrice = marketData.price;
+        shouldExecuteImmediately = true;
+        break;
+
+      case "limit":
+        executionPrice = limitPrice;
+        // For limit orders, check if they can be filled immediately
+        if (action === "buy" && limitPrice >= marketData.price) {
+          shouldExecuteImmediately = true;
+          executionPrice = marketData.price; // Better fill at market
+        } else if (action === "sell" && limitPrice <= marketData.price) {
+          shouldExecuteImmediately = true;
+          executionPrice = marketData.price; // Better fill at market
+        }
+        break;
+
+      case "stop_loss":
+        executionPrice = stopPrice;
+        // Stop loss executes at market when triggered
+        if (action === "buy" && marketData.price >= stopPrice) {
+          shouldExecuteImmediately = true;
+          executionPrice = marketData.price;
+        } else if (action === "sell" && marketData.price <= stopPrice) {
+          shouldExecuteImmediately = true;
+          executionPrice = marketData.price;
+        }
+        break;
+
+      case "stop_limit":
+        executionPrice = limitPrice;
+        // Stop limit converts to limit order when stop price is hit
+        if (action === "buy" && marketData.price >= stopPrice) {
+          if (limitPrice >= marketData.price) {
+            shouldExecuteImmediately = true;
+            executionPrice = marketData.price;
+          }
+        } else if (action === "sell" && marketData.price <= stopPrice) {
+          if (limitPrice <= marketData.price) {
+            shouldExecuteImmediately = true;
+            executionPrice = marketData.price;
+          }
+        }
+        break;
+
+      case "trailing_stop":
+        executionPrice = marketData.price;
+        // Trailing stop logic would need more complex implementation
+        // For now, treat as stop loss
+        shouldExecuteImmediately = false;
+        break;
+
+      default:
+        executionPrice = marketData.price;
+        shouldExecuteImmediately = true;
     }
 
     // Get user's wallet
@@ -148,7 +269,7 @@ export const placeTrade = async (req, res) => {
       });
     }
 
-    const totalValue = quantity * price;
+    const totalValue = quantity * executionPrice;
     const commission = totalValue * 0.001; // 0.1% commission
     const totalCost = totalValue + commission;
 
@@ -202,69 +323,128 @@ export const placeTrade = async (req, res) => {
       }
     }
 
+    // Determine trade status based on execution
+    const tradeStatus = shouldExecuteImmediately ? "closed" : "pending";
+
+    // Set expiry date if provided
+    let expirationTime = null;
+    if (expiryDate && timeInForce === "GTC") {
+      expirationTime = new Date(expiryDate);
+    } else if (timeInForce === "DAY") {
+      // Set expiry to end of day
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+      expirationTime = endOfDay;
+    }
+
     // Create the trade
     const trade = new Trade({
       user: userId,
       symbol: symbol.toUpperCase(),
       symbolType: "stock",
       type: action,
-      orderType: "market",
+      orderType:
+        orderType === "stop_loss"
+          ? "stop"
+          : orderType === "stop_limit"
+          ? "stop-limit"
+          : orderType,
       quantity: quantity,
-      entryPrice: price,
-      currentPrice: price,
-      status: "closed", // For simplicity, immediately close trades
-      openTime: new Date(),
-      closeTime: new Date(),
-      exitPrice: price,
+      entryPrice: executionPrice,
+      currentPrice: marketData.price,
+      status: tradeStatus,
+      stopLoss: orderType.includes("stop") ? stopPrice : null,
+      takeProfit: takeProfitPrice || null,
+      expirationTime: expirationTime,
       execution: {
-        requestedPrice: price,
-        executedPrice: price,
-        commission: commission,
+        requestedPrice: limitPrice || stopPrice || marketData.price,
+        executedPrice: shouldExecuteImmediately ? executionPrice : null,
+        commission: shouldExecuteImmediately ? commission : 0,
         slippage: 0,
-        executionTime: Math.floor(Math.random() * 100), // Random execution time in ms
+        executionTime: shouldExecuteImmediately
+          ? Math.floor(Math.random() * 100)
+          : null,
+      },
+      marketConditions: {
+        marketOpen: true,
+        volatility:
+          Math.abs(marketData.changePercent) > 3
+            ? "high"
+            : Math.abs(marketData.changePercent) > 1
+            ? "medium"
+            : "low",
+        spread: Math.abs(marketData.price * 0.001), // 0.1% spread simulation
+        liquidity: "high",
       },
     });
 
-    // Calculate P&L (will be 0 for immediate execution but sets up the structure)
-    const plData = trade.calculateProfitLoss(price);
-    trade.profit = plData.profit;
-    trade.loss = plData.loss;
-    trade.netProfitLoss = plData.netProfitLoss;
-    trade.profitLossPercentage = plData.profitLossPercentage;
+    // For executed trades, calculate P&L and set times
+    if (shouldExecuteImmediately) {
+      trade.openTime = new Date();
+      trade.closeTime = new Date();
+      trade.exitPrice = executionPrice;
+
+      const plData = trade.calculateProfitLoss(executionPrice);
+      trade.profit = plData.profit;
+      trade.loss = plData.loss;
+      trade.netProfitLoss = plData.netProfitLoss;
+      trade.profitLossPercentage = plData.profitLossPercentage;
+    }
 
     await trade.save({ session });
 
-    // Update wallet balance
-    if (action === "buy") {
-      wallet.balance -= totalCost;
-      wallet.transactions.push({
-        type: "trade_buy",
-        amount: -totalCost,
-        description: `Bought ${quantity} shares of ${symbol}`,
-        relatedTrade: trade._id,
-      });
+    // Update wallet balance only for executed trades
+    if (shouldExecuteImmediately) {
+      if (action === "buy") {
+        wallet.balance -= totalCost;
+        wallet.transactions.push({
+          type: "trade_buy",
+          amount: -totalCost,
+          description: `Bought ${quantity} shares of ${symbol} (${orderType.toUpperCase()})`,
+          relatedTrade: trade._id,
+        });
+      } else {
+        const proceeds = totalValue - commission;
+        wallet.balance += proceeds;
+        wallet.transactions.push({
+          type: "trade_sell",
+          amount: proceeds,
+          description: `Sold ${quantity} shares of ${symbol} (${orderType.toUpperCase()})`,
+          relatedTrade: trade._id,
+        });
+      }
+      await wallet.save({ session });
     } else {
-      const proceeds = totalValue - commission;
-      wallet.balance += proceeds;
-      wallet.transactions.push({
-        type: "trade_sell",
-        amount: proceeds,
-        description: `Sold ${quantity} shares of ${symbol}`,
-        relatedTrade: trade._id,
-      });
+      // For pending orders, reserve funds for buy orders
+      if (action === "buy") {
+        // You might want to implement fund reservation logic here
+        // For now, we'll just validate the balance without reserving
+      }
     }
 
-    await wallet.save({ session });
     await session.commitTransaction();
+
+    // Generate appropriate response message
+    let message;
+    if (shouldExecuteImmediately) {
+      message = `Successfully ${
+        action === "buy" ? "bought" : "sold"
+      } ${quantity} shares of ${symbol} at $${executionPrice.toFixed(2)}`;
+    } else {
+      message = `${orderType
+        .replace("_", " ")
+        .toUpperCase()} order placed for ${quantity} shares of ${symbol}`;
+    }
 
     res.status(201).json({
       success: true,
       data: {
         trade: trade,
         newBalance: wallet.balance,
-        message: `Successfully ${
-          action === "buy" ? "bought" : "sold"
-        } ${quantity} shares of ${symbol}`,
+        executed: shouldExecuteImmediately,
+        orderType: orderType,
+        executionPrice: shouldExecuteImmediately ? executionPrice : null,
+        message: message,
       },
     });
   } catch (error) {
@@ -564,6 +744,145 @@ export const getOpenPositions = async (req, res) => {
     res.status(500).json({
       success: false,
       error: { message: "Failed to fetch open positions" },
+    });
+  }
+};
+
+/**
+ * @desc    Get pending orders
+ * @route   GET /api/trading/pending
+ * @access  Private
+ */
+export const getPendingOrders = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const pendingOrders = await Trade.find({
+      user: userId,
+      status: "pending",
+    }).sort({ createdAt: -1 });
+
+    // Enrich with current market data and status
+    const enrichedOrders = pendingOrders.map((order) => {
+      const currentPrice = MOCK_STOCKS[order.symbol]?.price || 0;
+
+      // Determine if order would execute at current price
+      let wouldExecute = false;
+      let distanceToTrigger = 0;
+
+      switch (order.orderType) {
+        case "limit":
+          if (order.type === "buy") {
+            wouldExecute = currentPrice <= order.execution.requestedPrice;
+            distanceToTrigger = order.execution.requestedPrice - currentPrice;
+          } else {
+            wouldExecute = currentPrice >= order.execution.requestedPrice;
+            distanceToTrigger = currentPrice - order.execution.requestedPrice;
+          }
+          break;
+
+        case "stop":
+          if (order.type === "buy") {
+            wouldExecute = currentPrice >= order.stopLoss;
+            distanceToTrigger = order.stopLoss - currentPrice;
+          } else {
+            wouldExecute = currentPrice <= order.stopLoss;
+            distanceToTrigger = currentPrice - order.stopLoss;
+          }
+          break;
+
+        case "stop-limit":
+          const stopTriggered =
+            order.type === "buy"
+              ? currentPrice >= order.stopLoss
+              : currentPrice <= order.stopLoss;
+
+          if (stopTriggered) {
+            wouldExecute =
+              order.type === "buy"
+                ? currentPrice <= order.execution.requestedPrice
+                : currentPrice >= order.execution.requestedPrice;
+            distanceToTrigger =
+              order.type === "buy"
+                ? order.execution.requestedPrice - currentPrice
+                : currentPrice - order.execution.requestedPrice;
+          } else {
+            distanceToTrigger =
+              order.type === "buy"
+                ? order.stopLoss - currentPrice
+                : currentPrice - order.stopLoss;
+          }
+          break;
+      }
+
+      return {
+        ...order.toObject(),
+        currentPrice,
+        wouldExecute,
+        distanceToTrigger: parseFloat(distanceToTrigger.toFixed(2)),
+        distancePercent: parseFloat(
+          ((distanceToTrigger / currentPrice) * 100).toFixed(2)
+        ),
+        isExpired: order.expirationTime && new Date() > order.expirationTime,
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: enrichedOrders,
+    });
+  } catch (error) {
+    console.error("Get pending orders error:", error);
+    res.status(500).json({
+      success: false,
+      error: { message: "Failed to fetch pending orders" },
+    });
+  }
+};
+
+// Cancel a pending order
+export const cancelOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const userId = req.user.id;
+
+    // Validate order ID format
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({
+        success: false,
+        error: { message: "Invalid order ID format" },
+      });
+    }
+
+    // Find the order
+    const order = await Trade.findOne({
+      _id: orderId,
+      userId,
+      status: "pending",
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: { message: "Pending order not found" },
+      });
+    }
+
+    // Update order status to cancelled
+    order.status = "cancelled";
+    order.cancelledAt = new Date();
+    await order.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Order cancelled successfully",
+      data: order,
+    });
+  } catch (error) {
+    console.error("Cancel order error:", error);
+    res.status(500).json({
+      success: false,
+      error: { message: "Failed to cancel order" },
     });
   }
 };

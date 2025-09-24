@@ -6,6 +6,8 @@ import {
   closeTrade,
   getPortfolio,
   getOpenPositions,
+  getPendingOrders,
+  cancelOrder,
 } from "../controllers/tradingController.js";
 import { auth } from "../middleware/auth.js";
 
@@ -48,6 +50,20 @@ router.get("/portfolio", auth, getPortfolio);
  * @access  Private
  */
 router.get("/positions", auth, getOpenPositions);
+
+/**
+ * @route   GET /api/trades/pending
+ * @desc    Get user's pending orders
+ * @access  Private
+ */
+router.get("/pending", auth, getPendingOrders);
+
+/**
+ * @route   DELETE /api/trades/pending/:orderId
+ * @desc    Cancel a pending order
+ * @access  Private
+ */
+router.delete("/pending/:orderId", auth, cancelOrder);
 
 // Trading endpoints
 /**

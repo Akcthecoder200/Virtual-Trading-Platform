@@ -70,6 +70,32 @@ export const tradingService = {
       );
     }
   },
+
+  // Get pending orders
+  getPendingOrders: async () => {
+    try {
+      const response = await axiosInstance.get("/trading/pending");
+      return response.data;
+    } catch (error) {
+      console.error("Get pending orders error:", error);
+      throw (
+        error.response?.data || { message: "Failed to fetch pending orders" }
+      );
+    }
+  },
+
+  // Cancel a pending order
+  cancelOrder: async (orderId) => {
+    try {
+      const response = await axiosInstance.delete(
+        `/trading/pending/${orderId}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Cancel order error:", error);
+      throw error.response?.data || { message: "Failed to cancel order" };
+    }
+  },
 };
 
 export default tradingService;

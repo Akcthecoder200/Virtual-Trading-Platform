@@ -40,6 +40,9 @@ function App() {
     if (token && !isAuthenticated) {
       dispatch(setLoading(true));
       dispatch(getProfile());
+    } else if (!token) {
+      // No token means user is not logged in, stop loading
+      dispatch(setLoading(false));
     }
   }, [token, isAuthenticated, dispatch]);
 

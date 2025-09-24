@@ -8,12 +8,12 @@ import TradeHistory from "../components/trading/TradeHistory";
 import MarketWatch from "../components/trading/MarketWatch";
 import ChartContainer from "../components/trading/ChartContainer";
 import StockSearch from "../components/trading/StockSearch";
-import { useTradingLoading, useTradingError } from "../store/hooks";
+import PendingOrders from "../components/trading/PendingOrders";
+import { useTradingError } from "../store/hooks";
 import toast from "react-hot-toast";
 
 const Trading = () => {
   const dispatch = useDispatch();
-  const isLoading = useTradingLoading();
   const error = useTradingError();
   const [selectedStock, setSelectedStock] = useState(null);
 
@@ -81,6 +81,11 @@ const Trading = () => {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Pending Orders */}
+          <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <PendingOrders />
           </div>
 
           {/* Trade History */}
