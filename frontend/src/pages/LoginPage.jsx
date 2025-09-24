@@ -2,16 +2,14 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { Eye, EyeOff, TrendingUp, Mail, Lock, Loader2 } from "lucide-react";
-import { useAuth, useAppDispatch } from "../store/hooks";
-import { loginUser } from "../store/slices/authSlice";
+import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { isLoading } = useAuth();
-  const dispatch = useAppDispatch();
+  const { login, isLoading } = useAuth();
 
   const from = location.state?.from?.pathname || "/dashboard";
 
@@ -23,10 +21,22 @@ const LoginPage = () => {
 
   const onSubmit = async (data) => {
     try {
-      const result = await dispatch(loginUser(data)).unwrap();
-      toast.success("Welcome back!");
+      console.log("🔄 LoginPage: Starting login request", {
+        email: data.email,
+      });
+
+      const result = await login(data);
+      const { user } = result;
+
+      console.log("✅ LoginPage: Login successful", {
+        user: user.email,
+        hasTokens: !!result.tokens,
+      });
+
+      toast.success(`Welcome back, ${user.firstName}!`);
       navigate(from, { replace: true });
     } catch (error) {
+      console.error("❌ LoginPage: Login failed", error);
       toast.error(error.message || "Login failed. Please try again.");
     }
   };

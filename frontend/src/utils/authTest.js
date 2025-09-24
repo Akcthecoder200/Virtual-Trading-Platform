@@ -1,5 +1,14 @@
 // Authentication test utilities
-import { authService } from "../services/authService";
+const API_BASE_URL = "http://localhost:5000/api";
+
+// Helper function to get auth headers
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("accessToken");
+  return {
+    "Content-Type": "application/json",
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
+};
 
 export const testAuthConnection = async () => {
   try {
@@ -30,9 +39,22 @@ export const testExistingLogin = async () => {
       password: "admin123",
     };
 
-    const response = await authService.login(adminCredentials);
-    console.log("✅ Admin login successful:", response.data);
-    return response.data;
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(adminCredentials),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || "Login failed");
+    }
+
+    console.log("✅ Admin login successful:", data);
+    return data;
   } catch (error) {
     console.error(
       "❌ Admin login failed:",
@@ -57,9 +79,22 @@ export const testSignup = async () => {
       lastName: "User",
     };
 
-    const response = await authService.signup(testUser);
-    console.log("✅ Signup successful:", response.data);
-    return response.data;
+    const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(testUser),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || "Signup failed");
+    }
+
+    console.log("✅ Signup successful:", data);
+    return data;
   } catch (error) {
     console.error("❌ Signup failed:", error.response?.data || error.message);
     throw error;
@@ -70,9 +105,22 @@ export const testLogin = async (credentials) => {
   try {
     console.log("🔍 Testing login functionality...");
 
-    const response = await authService.login(credentials);
-    console.log("✅ Login successful:", response.data);
-    return response.data;
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(credentials),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || "Login failed");
+    }
+
+    console.log("✅ Login successful:", data);
+    return data;
   } catch (error) {
     console.error("❌ Login failed:", error.response?.data || error.message);
     throw error;
@@ -83,9 +131,19 @@ export const testGetProfile = async () => {
   try {
     console.log("🔍 Testing get profile...");
 
-    const response = await authService.getProfile();
-    console.log("✅ Profile fetch successful:", response.data);
-    return response.data;
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || "Failed to fetch profile");
+    }
+
+    console.log("✅ Profile fetch successful:", data);
+    return data;
   } catch (error) {
     console.error(
       "❌ Profile fetch failed:",

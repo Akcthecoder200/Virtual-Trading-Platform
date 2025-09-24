@@ -1,6 +1,16 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { authService } from "../../services/authService";
 import toast from "react-hot-toast";
+
+const API_BASE_URL = "http://localhost:5000/api";
+
+// Helper function to get auth headers
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("accessToken");
+  return {
+    "Content-Type": "application/json",
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
+};
 
 // Async thunks for authentication actions
 export const loginUser = createAsyncThunk(
@@ -10,13 +20,32 @@ export const loginUser = createAsyncThunk(
       console.log("🔄 Redux loginUser: Starting login request", {
         email: credentials.email,
       });
-      const response = await authService.login(credentials);
-      const { user, tokens } = response.data;
+
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(credentials),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Login failed");
+      }
+
+      const { user, tokens } = data.data;
 
       console.log("✅ Redux loginUser: Login successful", {
         user: user.email,
         hasTokens: !!tokens,
       });
+
+      // Store tokens in localStorage
+      localStorage.setItem("accessToken", tokens.accessToken);
+      localStorage.setItem("refreshToken", tokens.refreshToken);
+
       toast.success(`Welcome back, ${user.firstName}!`);
 
       return {
@@ -44,13 +73,41 @@ export const signupUser = createAsyncThunk(
         email: userData.email,
         username: userData.username,
       });
-      const response = await authService.signup(userData);
-      const { user, tokens } = response.data;
+
+      const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const errorMsg = data.error?.message || "Signup failed";
+        // Show validation details if available
+        if (data.error?.details) {
+          const details = data.error.details;
+          const detailMsg = details
+            .map((d) => `${d.field}: ${d.message}`)
+            .join(", ");
+          throw new Error(detailMsg);
+        }
+        throw new Error(errorMsg);
+      }
+
+      const { user, tokens } = data.data;
 
       console.log("✅ Redux signupUser: Signup successful", {
         user: user.email,
         hasTokens: !!tokens,
       });
+
+      // Store tokens in localStorage
+      localStorage.setItem("accessToken", tokens.accessToken);
+      localStorage.setItem("refreshToken", tokens.refreshToken);
+
       toast.success(
         `Welcome, ${user.firstName}! Account created successfully.`
       );
@@ -61,9 +118,17 @@ export const signupUser = createAsyncThunk(
         refreshToken: tokens.refreshToken,
       };
     } catch (error) {
-      const message = error.response?.data?.error?.message || "Signup failed";
+      let message = error.response?.data?.error?.message || "Signup failed";
+
+      // Show validation details if available
+      if (error.response?.data?.error?.details) {
+        const details = error.response.data.error.details;
+        message = details.map((d) => `${d.field}: ${d.message}`).join(", ");
+      }
+
       console.error("❌ Redux signupUser: Signup failed", {
         error: message,
+        details: error.response?.data?.error?.details,
         fullError: error,
       });
       toast.error(message);
@@ -76,31 +141,60 @@ export const logoutUser = createAsyncThunk(
   "auth/logout",
   async (_, { rejectWithValue }) => {
     try {
-      await authService.logout();
+      const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        console.warn("Logout request failed, but clearing local state anyway");
+      }
+
+      // Clear tokens from localStorage
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+
       toast.success("Logged out successfully");
       return null;
     } catch (error) {
       // Even if logout fails on server, we still clear local state
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
       toast.success("Logged out successfully");
       return null;
     }
   }
 );
-
 export const refreshToken = createAsyncThunk(
   "auth/refreshToken",
   async (refreshTokenValue, { rejectWithValue }) => {
     try {
-      const response = await authService.refreshToken(refreshTokenValue);
-      const { accessToken, refreshToken: newRefreshToken } =
-        response.data.tokens;
+      const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refreshToken: refreshTokenValue }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Token refresh failed");
+      }
+
+      const { accessToken, refreshToken: newRefreshToken } = data.tokens;
+
+      // Update localStorage with new tokens
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", newRefreshToken);
 
       return {
         token: accessToken,
         refreshToken: newRefreshToken,
       };
     } catch (error) {
-      return rejectWithValue("Token refresh failed");
+      return rejectWithValue(error.message || "Token refresh failed");
     }
   }
 );
@@ -109,10 +203,20 @@ export const getProfile = createAsyncThunk(
   "auth/getProfile",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await authService.getProfile();
-      return response.data.user;
+      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+        method: "GET",
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Failed to fetch profile");
+      }
+
+      return data.user;
     } catch (error) {
-      return rejectWithValue("Failed to fetch profile");
+      return rejectWithValue(error.message || "Failed to fetch profile");
     }
   }
 );
@@ -121,12 +225,22 @@ export const updateUserProfile = createAsyncThunk(
   "auth/updateProfile",
   async (profileData, { rejectWithValue }) => {
     try {
-      const response = await authService.updateProfile(profileData);
+      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(profileData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Failed to update profile");
+      }
+
       toast.success("Profile updated successfully");
-      return response.data.user;
+      return data.user;
     } catch (error) {
-      const message =
-        error.response?.data?.error?.message || "Failed to update profile";
+      const message = error.message || "Failed to update profile";
       toast.error(message);
       return rejectWithValue(message);
     }

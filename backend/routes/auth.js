@@ -27,16 +27,13 @@ const router = express.Router();
  */
 router.post("/signup", validateSignup, async (req, res) => {
   try {
-    const {
-      firstName,
-      lastName,
-      email,
-      password,
-      dateOfBirth,
-      phone,
-      country,
-      agreeToTerms,
-    } = req.body;
+    console.log("🔍 Signup request received:", {
+      body: req.body,
+      headers: req.headers["content-type"],
+    });
+
+    const { firstName, lastName, email, password, country, agreeToTerms } =
+      req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -67,9 +64,7 @@ router.post("/signup", validateSignup, async (req, res) => {
       profile: {
         firstName,
         lastName,
-        dateOfBirth: new Date(dateOfBirth),
         country: country.toUpperCase(),
-        phone,
       },
       analytics: {
         signupDate: new Date(),
@@ -145,8 +140,10 @@ router.post("/login", validateLogin, async (req, res) => {
   try {
     const { email, password, rememberMe = false } = req.body;
 
-    // Find user by email
-    const user = await User.findOne({ email: email.toLowerCase() });
+    // Find user by email and include password for comparison
+    const user = await User.findOne({ email: email.toLowerCase() }).select(
+      "+password"
+    );
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -210,25 +207,9 @@ router.post("/login", validateLogin, async (req, res) => {
     user.security.loginAttempts = 0;
     user.security.lockUntil = null;
 
-    // Update login analytics
-    user.analytics.lastLoginAt = new Date();
-    user.analytics.totalLogins += 1;
-    user.analytics.loginHistory.push({
-      timestamp: new Date(),
-      ip: req.ip,
-      userAgent: req.headers["user-agent"] || "Unknown",
-      success: true,
-    });
-
-    // Keep only last 10 login records
-    if (user.analytics.loginHistory.length > 10) {
-      user.analytics.loginHistory = user.analytics.loginHistory.slice(-10);
-    }
-
-    // Add IP address to tracking
-    if (!user.analytics.ipAddresses.includes(req.ip)) {
-      user.analytics.ipAddresses.push(req.ip);
-    }
+    // Update login security tracking
+    user.security.lastLogin = new Date();
+    user.security.lastLoginIP = req.ip;
 
     // Generate tokens
     const tokenExpiry = rememberMe ? "30d" : "24h";

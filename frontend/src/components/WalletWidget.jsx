@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   DollarSign,
   Plus,
@@ -10,55 +10,133 @@ import {
   RefreshCw,
   Loader2,
 } from "lucide-react";
-import { useWallet, useAppDispatch } from "../store/hooks";
-import {
-  getWalletBalance,
-  addFunds,
-  withdrawFunds,
-} from "../store/slices/walletSlice";
+import toast from "react-hot-toast";
+
+const API_BASE_URL = "http://localhost:5000/api";
+
+// Helper function to get auth headers
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("accessToken");
+  return {
+    "Content-Type": "application/json",
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
+};
 
 const WalletWidget = () => {
-  const { balance, isLoading, error, lastUpdated } = useWallet();
-  const dispatch = useAppDispatch();
+  const [balance, setBalance] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [showAddFunds, setShowAddFunds] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
 
-  const handleRefresh = () => {
-    dispatch(getWalletBalance());
+  const fetchWalletBalance = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/wallet/balance`, {
+        method: "GET",
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error?.message || "Failed to fetch wallet balance"
+        );
+      }
+
+      setBalance(data.balance || 0);
+      setLastUpdated(new Date().toISOString());
+    } catch (err) {
+      setError(err.message);
+      toast.error(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const handleRefresh = () => {
+    fetchWalletBalance();
+  };
+
+  // Load balance on component mount
+  useEffect(() => {
+    fetchWalletBalance();
+  }, []);
 
   const handleAddFunds = async (e) => {
     e.preventDefault();
     if (!amount || parseFloat(amount) <= 0) return;
 
-    await dispatch(
-      addFunds({
-        amount: parseFloat(amount),
-        description: description || "Funds added via dashboard",
-      })
-    );
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/wallet/add-funds`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          amount: parseFloat(amount),
+          description: description || "Funds added via dashboard",
+        }),
+      });
 
-    setAmount("");
-    setDescription("");
-    setShowAddFunds(false);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Failed to add funds");
+      }
+
+      setBalance(data.newBalance || balance);
+      setLastUpdated(new Date().toISOString());
+      toast.success(`Successfully added $${amount} to your wallet`);
+
+      setAmount("");
+      setDescription("");
+      setShowAddFunds(false);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleWithdraw = async (e) => {
     e.preventDefault();
     if (!amount || parseFloat(amount) <= 0) return;
 
-    await dispatch(
-      withdrawFunds({
-        amount: parseFloat(amount),
-        description: description || "Funds withdrawn via dashboard",
-      })
-    );
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/wallet/withdraw-funds`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          amount: parseFloat(amount),
+          description: description || "Funds withdrawn via dashboard",
+        }),
+      });
 
-    setAmount("");
-    setDescription("");
-    setShowWithdraw(false);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Failed to withdraw funds");
+      }
+
+      setBalance(data.newBalance || balance);
+      setLastUpdated(new Date().toISOString());
+      toast.success(`Successfully withdrew $${amount} from your wallet`);
+
+      setAmount("");
+      setDescription("");
+      setShowWithdraw(false);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatCurrency = (value) => {

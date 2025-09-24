@@ -1,6 +1,16 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { walletService } from "../../services/authService";
 import toast from "react-hot-toast";
+
+const API_BASE_URL = "http://localhost:5000/api";
+
+// Helper function to get auth headers
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("accessToken");
+  return {
+    "Content-Type": "application/json",
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
+};
 
 // Async thunks for wallet operations
 export const getWalletBalance = createAsyncThunk(
@@ -8,12 +18,25 @@ export const getWalletBalance = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       console.log("🔄 Redux getWalletBalance: Fetching wallet balance");
-      const response = await walletService.getBalance();
+
+      const response = await fetch(`${API_BASE_URL}/wallet/balance`, {
+        method: "GET",
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error?.message || "Failed to fetch wallet balance"
+        );
+      }
+
       console.log(
         "✅ Redux getWalletBalance: Balance fetched successfully",
-        response.data
+        data
       );
-      return response.data;
+      return data;
     } catch (error) {
       const message =
         error.response?.data?.error?.message ||
@@ -35,12 +58,28 @@ export const getWalletTransactions = createAsyncThunk(
         "🔄 Redux getWalletTransactions: Fetching transactions",
         params
       );
-      const response = await walletService.getTransactions(params);
+
+      const queryParams = new URLSearchParams(params).toString();
+      const url = `${API_BASE_URL}/wallet/transactions${
+        queryParams ? `?${queryParams}` : ""
+      }`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Failed to fetch transactions");
+      }
+
       console.log(
         "✅ Redux getWalletTransactions: Transactions fetched successfully",
-        response.data
+        data
       );
-      return response.data;
+      return data;
     } catch (error) {
       const message =
         error.response?.data?.error?.message || "Failed to fetch transactions";
@@ -58,12 +97,24 @@ export const addFunds = createAsyncThunk(
   async ({ amount, description }, { rejectWithValue }) => {
     try {
       console.log("🔄 Redux addFunds: Adding funds", { amount, description });
-      const response = await walletService.addFunds(amount, description);
-      console.log("✅ Redux addFunds: Funds added successfully", response.data);
+
+      const response = await fetch(`${API_BASE_URL}/wallet/add-funds`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ amount, description }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Failed to add funds");
+      }
+
+      console.log("✅ Redux addFunds: Funds added successfully", data);
       toast.success(
         `Successfully added $${amount.toLocaleString()} to your wallet`
       );
-      return response.data;
+      return data;
     } catch (error) {
       const message =
         error.response?.data?.error?.message || "Failed to add funds";
@@ -85,15 +136,24 @@ export const withdrawFunds = createAsyncThunk(
         amount,
         description,
       });
-      const response = await walletService.withdrawFunds(amount, description);
-      console.log(
-        "✅ Redux withdrawFunds: Funds withdrawn successfully",
-        response.data
-      );
+
+      const response = await fetch(`${API_BASE_URL}/wallet/withdraw-funds`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ amount, description }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Failed to withdraw funds");
+      }
+
+      console.log("✅ Redux withdrawFunds: Funds withdrawn successfully", data);
       toast.success(
         `Successfully withdrew $${amount.toLocaleString()} from your wallet`
       );
-      return response.data;
+      return data;
     } catch (error) {
       const message =
         error.response?.data?.error?.message || "Failed to withdraw funds";
@@ -112,12 +172,23 @@ export const getWalletAnalytics = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       console.log("🔄 Redux getWalletAnalytics: Fetching analytics");
-      const response = await walletService.getAnalytics();
+
+      const response = await fetch(`${API_BASE_URL}/wallet/analytics`, {
+        method: "GET",
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Failed to fetch analytics");
+      }
+
       console.log(
         "✅ Redux getWalletAnalytics: Analytics fetched successfully",
-        response.data
+        data
       );
-      return response.data;
+      return data;
     } catch (error) {
       const message =
         error.response?.data?.error?.message || "Failed to fetch analytics";

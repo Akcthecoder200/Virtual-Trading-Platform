@@ -42,9 +42,12 @@ router.get("/balance", authenticateToken, async (req, res) => {
 
     // Calculate additional wallet metrics
     const walletData = wallet.toObject();
+    const netTradingProfit =
+      (wallet.statistics?.totalTradingProfit || 0) -
+      (wallet.statistics?.totalTradingLoss || 0);
     walletData.profitLossPercentage =
       wallet.balance > 0
-        ? ((wallet.analytics.profitLoss / wallet.balance) * 100).toFixed(2)
+        ? ((netTradingProfit / wallet.balance) * 100).toFixed(2)
         : 0;
 
     res.json({
@@ -128,10 +131,12 @@ router.get("/transactions", authenticateToken, async (req, res) => {
           hasPrevPage: page > 1,
         },
         summary: {
-          totalDeposits: wallet.analytics.totalDeposits,
-          totalWithdrawals: wallet.analytics.totalWithdrawals,
-          totalTrades: wallet.analytics.totalTrades,
-          netProfitLoss: wallet.analytics.profitLoss,
+          totalDeposits: wallet.statistics?.totalDeposits || 0,
+          totalWithdrawals: wallet.statistics?.totalWithdrawals || 0,
+          totalTrades: wallet.transactions?.length || 0,
+          netProfitLoss:
+            (wallet.statistics?.totalTradingProfit || 0) -
+            (wallet.statistics?.totalTradingLoss || 0),
         },
       },
     });

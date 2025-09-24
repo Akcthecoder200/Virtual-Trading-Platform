@@ -22,27 +22,7 @@ const profileSchema = new Schema(
       trim: true,
       maxlength: [50, "Last name cannot exceed 50 characters"],
     },
-    dateOfBirth: {
-      type: Date,
-      validate: {
-        validator: function (value) {
-          if (!value) return true; // Optional field
-          const age = (new Date() - value) / (365.25 * 24 * 60 * 60 * 1000);
-          return age >= 18; // Must be 18 or older
-        },
-        message: "User must be at least 18 years old",
-      },
-    },
-    phone: {
-      type: String,
-      validate: {
-        validator: function (value) {
-          if (!value) return true; // Optional field
-          return validator.isMobilePhone(value);
-        },
-        message: "Please provide a valid phone number",
-      },
-    },
+
     country: {
       type: String,
       required: [true, "Country is required"],

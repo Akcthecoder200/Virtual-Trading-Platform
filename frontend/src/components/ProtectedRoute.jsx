@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "../store/hooks";
+import { useAuth } from "../contexts/AuthContext";
 import LoadingScreen from "./LoadingScreen";
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {

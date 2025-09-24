@@ -7,6 +7,11 @@ const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
+    console.log("❌ Validation failed:", {
+      body: req.body,
+      errors: errors.array(),
+    });
+
     return res.status(400).json({
       success: false,
       error: {
@@ -66,38 +71,6 @@ const validateRegistration = [
     }
     return true;
   }),
-
-  body("dateOfBirth")
-    .isISO8601()
-    .withMessage("Date of birth must be a valid date")
-    .custom((value) => {
-      const today = new Date();
-      const birthDate = new Date(value);
-      const age = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-
-      if (
-        monthDiff < 0 ||
-        (monthDiff === 0 && today.getDate() < birthDate.getDate())
-      ) {
-        age--;
-      }
-
-      if (age < 18) {
-        throw new Error("You must be at least 18 years old to register");
-      }
-
-      if (age > 120) {
-        throw new Error("Please provide a valid date of birth");
-      }
-
-      return true;
-    }),
-
-  body("phone")
-    .optional()
-    .isMobilePhone()
-    .withMessage("Please provide a valid phone number"),
 
   body("country")
     .isLength({ min: 2, max: 2 })

@@ -11,16 +11,14 @@ import {
   Loader2,
   CheckCircle,
 } from "lucide-react";
-import { useAuth, useAppDispatch } from "../store/hooks";
-import { signupUser } from "../store/slices/authSlice";
+import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
 
 const SignupPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
-  const { isLoading } = useAuth();
-  const dispatch = useAppDispatch();
+  const { signup, isLoading } = useAuth();
 
   const {
     register,
@@ -42,22 +40,43 @@ const SignupPage = () => {
       test: (pwd) => pwd && /[a-z]/.test(pwd),
     },
     { label: "Contains number", test: (pwd) => pwd && /\d/.test(pwd) },
+    {
+      label: "Contains special character (@$!%*?&)",
+      test: (pwd) => pwd && /[@$!%*?&]/.test(pwd),
+    },
   ];
 
   const onSubmit = async (data) => {
     try {
-      const result = await dispatch(
-        signupUser({
-          username: data.username,
-          email: data.email,
-          password: data.password,
-          firstName: data.firstName,
-          lastName: data.lastName,
-        })
-      ).unwrap();
-      toast.success("Account created successfully! Welcome to VirtualTrade!");
+      console.log("🔄 SignupPage: Starting signup request", {
+        email: data.email,
+        firstName: data.firstName,
+      });
+
+      const userData = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+        country: data.country,
+        agreeToTerms: data.acceptTerms,
+      };
+
+      const result = await signup(userData);
+      const { user } = result;
+
+      console.log("✅ SignupPage: Signup successful", {
+        user: user.email,
+        hasTokens: !!result.tokens,
+      });
+
+      toast.success(
+        `Welcome, ${user.firstName}! Account created successfully.`
+      );
       navigate("/dashboard");
     } catch (error) {
+      console.error("❌ SignupPage: Signup failed", error);
       toast.error(error.message || "Registration failed. Please try again.");
     }
   };
@@ -211,6 +230,39 @@ const SignupPage = () => {
               )}
             </div>
 
+            {/* Country Field */}
+            <div>
+              <label
+                htmlFor="country"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
+                Country
+              </label>
+              <select
+                {...register("country", {
+                  required: "Country is required",
+                })}
+                className="block w-full px-3 py-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select your country</option>
+                <option value="US">United States</option>
+                <option value="CA">Canada</option>
+                <option value="GB">United Kingdom</option>
+                <option value="AU">Australia</option>
+                <option value="DE">Germany</option>
+                <option value="FR">France</option>
+                <option value="IN">India</option>
+                <option value="JP">Japan</option>
+                <option value="CN">China</option>
+                <option value="BR">Brazil</option>
+              </select>
+              {errors.country && (
+                <p className="mt-1 text-sm text-red-500">
+                  {errors.country.message}
+                </p>
+              )}
+            </div>
+
             {/* Password Field */}
             <div>
               <label
@@ -239,6 +291,9 @@ const SignupPage = () => {
                         "Password must contain a lowercase letter",
                       hasNumber: (value) =>
                         /\d/.test(value) || "Password must contain a number",
+                      hasSpecialChar: (value) =>
+                        /[@$!%*?&]/.test(value) ||
+                        "Password must contain a special character (@$!%*?&)",
                     },
                   })}
                   type={showPassword ? "text" : "password"}
@@ -338,6 +393,9 @@ const SignupPage = () => {
               <input
                 {...register("acceptTerms", {
                   required: "You must accept the terms and conditions",
+                  validate: (value) =>
+                    value === true ||
+                    "You must accept the terms and conditions",
                 })}
                 type="checkbox"
                 className="h-4 w-4 mt-1 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
