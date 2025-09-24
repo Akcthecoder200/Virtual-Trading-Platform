@@ -1,5 +1,5 @@
 // Authentication test utilities
-const API_BASE_URL = import.meta.env.PROD 
+const API_BASE_URL = import.meta.env.PROD
   ? "/api" // Production: use relative path for Vercel
   : "http://localhost:5000/api"; // Development: use full localhost URL
 
@@ -17,8 +17,8 @@ export const testAuthConnection = async () => {
     console.log("🔍 Testing backend connection...");
 
     // Test a simple endpoint
-    const healthUrl = import.meta.env.PROD 
-      ? "/api/health" 
+    const healthUrl = import.meta.env.PROD
+      ? "/api/health"
       : "http://localhost:5000/api/health";
     const response = await fetch(healthUrl);
     if (!response.ok) {

@@ -12,16 +12,19 @@
 ## What You Need to Do:
 
 ### 1. 🗄️ Set Up MongoDB Atlas
+
 - [ ] Create MongoDB Atlas cluster
 - [ ] Create database user and password
 - [ ] Whitelist all IPs (0.0.0.0/0)
 - [ ] Get connection string
 
 ### 2. 🔑 Get API Key
+
 - [ ] Sign up for Alpha Vantage API key
 - [ ] Copy the API key for Vercel
 
 ### 3. 📁 Push to GitHub
+
 ```bash
 git add .
 git commit -m "Ready for Vercel deployment"
@@ -29,6 +32,7 @@ git push origin main
 ```
 
 ### 4. 🚀 Deploy on Vercel
+
 - [ ] Import GitHub repository
 - [ ] Set framework to "Other"
 - [ ] Set build command to: `npm run build`
@@ -37,6 +41,7 @@ git push origin main
 - [ ] Deploy!
 
 ### 5. 🔐 Environment Variables for Vercel:
+
 ```
 NODE_ENV=production
 MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/virtual-trading-platform

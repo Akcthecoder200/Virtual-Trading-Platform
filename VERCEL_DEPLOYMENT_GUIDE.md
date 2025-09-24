@@ -33,6 +33,7 @@
 ## 🔧 Step 3: Push to GitHub
 
 1. **Initialize Git** (if not already done):
+
    ```bash
    git init
    git add .
@@ -40,6 +41,7 @@
    ```
 
 2. **Create GitHub Repository**:
+
    - Go to GitHub and create a new repository
    - Name it `virtual-trading-platform`
    - Don't initialize with README (since you already have code)
@@ -56,12 +58,14 @@
 ## 🚀 Step 4: Deploy to Vercel
 
 ### 4.1 Import Project
+
 1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
 2. Click "New Project"
 3. Import your GitHub repository
 4. Select "Virtual Trading Platform" repository
 
 ### 4.2 Configure Build Settings
+
 - **Framework Preset**: Other
 - **Root Directory**: `./` (keep as root)
 - **Build Command**: `npm run build`
@@ -69,9 +73,11 @@
 - **Install Command**: `npm install`
 
 ### 4.3 Environment Variables
+
 Add these environment variables in your Vercel project settings:
 
 **For Backend (these will be available to your API routes):**
+
 ```
 NODE_ENV=production
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/virtual-trading-platform?retryWrites=true&w=majority
@@ -85,12 +91,14 @@ DEFAULT_DEMO_BALANCE=10000
 ```
 
 **Important Security Notes:**
+
 - Generate a strong JWT_SECRET (at least 32 characters)
 - Use a secure ADMIN_PASSWORD (not the default one)
 - Keep your MONGODB_URI and API keys secret
 
 ### 4.4 Deploy
-1. Click "Deploy" 
+
+1. Click "Deploy"
 2. Wait for build to complete (should take 2-3 minutes)
 3. Your app will be live at `https://your-project-name.vercel.app`
 
@@ -109,16 +117,19 @@ DEFAULT_DEMO_BALANCE=10000
 ## 🐛 Troubleshooting
 
 ### Build Errors
+
 - Check the build logs in Vercel dashboard
 - Ensure all dependencies are in package.json
 - Verify environment variables are set correctly
 
 ### API Errors
+
 - Check Function logs in Vercel dashboard
 - Verify MongoDB connection string is correct
 - Ensure MongoDB Atlas allows connections from 0.0.0.0/0
 
 ### CORS Issues
+
 - The CORS is already configured for production
 - If issues persist, check browser console for error details
 
@@ -163,6 +174,7 @@ Your Virtual Trading Platform is now live! Share the URL with users and start vi
 ## 📞 Need Help?
 
 If you encounter issues:
+
 1. Check Vercel build/function logs
 2. Verify all environment variables
 3. Test API endpoints directly
