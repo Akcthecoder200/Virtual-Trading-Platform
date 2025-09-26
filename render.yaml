@@ -1,0 +1,46 @@
+services:
+  # Backend API Service
+  - type: web
+    name: virtual-trading-backend
+    env: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      # Database connection will be set manually in Render dashboard
+      - key: MONGODB_URI
+        sync: false
+      # JWT secret will be generated/set manually in Render dashboard
+      - key: JWT_SECRET
+        sync: false
+      # Alpha Vantage API key will be set manually in Render dashboard
+      - key: ALPHA_VANTAGE_API_KEY
+        sync: false
+      # Admin credentials will be set manually in Render dashboard
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Rate limiting settings
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+      - key: DEFAULT_DEMO_BALANCE
+        value: 10000
+
+  # Frontend Static Site
+  - type: web
+    name: virtual-trading-frontend
+    env: static
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      # API URL will be set manually to backend service URL
+      - key: VITE_API_URL
+        sync: false

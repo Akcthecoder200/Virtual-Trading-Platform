@@ -1,5 +1,8 @@
-// Authenticati    const response = await fetch("http://localhost:5000/api/health");est utilities
-const API_BASE_URL = "http://localhost:5000/api";// Helper function to get auth headers
+// Authenticati    const healthUrl = import.meta.env.VITE_API_URL 
+      ? `${import.meta.env.VITE_API_URL}/health`
+      : "http://localhost:5000/api/health";
+    const response = await fetch(healthUrl);
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";// Helper function to get auth headers
 const getAuthHeaders = () => {
   const token = localStorage.getItem("accessToken");
   return {
