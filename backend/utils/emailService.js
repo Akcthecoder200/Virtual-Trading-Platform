@@ -15,9 +15,9 @@ class EmailService {
    * Initialize email transporter
    */
   init() {
-    if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_ENV === "production" && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       // Production email configuration (use your email service)
-      this.transporter = nodemailer.createTransporter({
+      this.transporter = nodemailer.createTransport({
         service: "gmail", // or your email service
         auth: {
           user: process.env.EMAIL_USER,
@@ -25,15 +25,16 @@ class EmailService {
         },
       });
     } else {
-      // Development: Use console logging or test account
+      // Development or Production without email credentials: Use console logging
+      const mode = process.env.NODE_ENV === "production" ? "Production (No Email Config)" : "Development";
       this.transporter = {
         sendMail: async (mailOptions) => {
-          console.log("📧 EMAIL WOULD BE SENT (Development Mode):");
+          console.log(`📧 EMAIL WOULD BE SENT (${mode}):`);
           console.log("To:", mailOptions.to);
           console.log("Subject:", mailOptions.subject);
           console.log("Content:", mailOptions.text || mailOptions.html);
           console.log("---");
-          return { messageId: "dev-mode-" + Date.now() };
+          return { messageId: "console-mode-" + Date.now() };
         },
       };
     }
