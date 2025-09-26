@@ -1,9 +1,5 @@
-// Authentication test utilities
-const API_BASE_URL = import.meta.env.PROD
-  ? "/api" // Production: use relative path for Vercel
-  : "http://localhost:5000/api"; // Development: use full localhost URL
-
-// Helper function to get auth headers
+// Authenticati    const response = await fetch("http://localhost:5000/api/health");est utilities
+const API_BASE_URL = "http://localhost:5000/api";// Helper function to get auth headers
 const getAuthHeaders = () => {
   const token = localStorage.getItem("accessToken");
   return {
