@@ -78,6 +78,7 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         // Refresh failed, clear auth and redirect to login
         localStorage.removeItem("persist:auth");
+
         window.location.href = "/login";
       }
     }
